@@ -32,6 +32,53 @@ COORD2 operator+(COORD2 const& lhs, COORD2 const& rhs)
 
 #pragma endregion GAME TYPES
 
+class DungeonModule
+{
+public:
+	DungeonModule() 
+	{
+
+	}
+
+	DungeonModule(short w, short h)
+	{
+		Create(w, h);
+	}
+
+	short width = 0;
+	short height = 0;
+
+private:
+	ENTITY *m_Tiles = nullptr;
+
+	void Create(short w, short h)
+	{
+		width = w;
+		height = h;
+		m_Tiles = new entity_types[w*h];
+		for (int i = 0; i < w*h; i++)
+			m_Tiles[i] = EMPTY;
+	}
+
+public:
+	void SetTile(short x, short y, ENTITY t)
+	{
+		if (x < 0 || x >= width || y < 0 || y >= height)
+			return;
+		else
+			m_Tiles[y * width + x] = t;
+	}
+
+	ENTITY GetTile(short x, short y)
+	{
+		if (x < 0 || x >= width || y < 0 || y >= height)
+			return EMPTY; // maybe change this to return null or some error tile.
+		else
+			return m_Tiles[y * width + x];
+	}
+
+};
+
 class Dungeon : public olcConsoleGameEngine
 {
 public:
@@ -50,14 +97,83 @@ private:
 	olcSprite *spriteEMPTY	= nullptr;
 
 	const short TILE_SIZE = 8;
-
-	COORD2 m_cPos;
 	pair<short, short> m_sBufOffset;
 
+	// Player states
+	COORD2 m_cPos;
 	DIRECTION m_dLastDirection;
-
 	bool m_bSliding;
 	bool m_bAlive;
+	short m_sDepth;
+
+	void ModuleToBoard(int x, int y, ENTITY t)
+	{
+		if (x >= 0 && x < m_xBoard.rows() && y >= 0 && y < m_xBoard.cols()) {
+			m_xBoard(x, y).type = t;
+		}
+	}
+	void DrawModule(short x, short y, DungeonModule *dm)
+	{
+		if (dm == nullptr)
+			return;
+
+		for (int i = 0; i < dm->width; i++)
+		{
+			for (int j = 0; j < dm->height; j++)
+			{
+				ModuleToBoard(x + i, y + j, dm->GetTile(i, j));
+			}
+		}
+	}
+
+	void CreateModuleStarting(DungeonModule *dm)
+	{
+		// top row
+		dm->SetTile(0, 0, FLOOR);
+		dm->SetTile(0, 1, FLOOR);
+		dm->SetTile(0, 2, FLOOR);
+		// middle row
+		dm->SetTile(1, 0, FLOOR);
+		dm->SetTile(1, 1, FLOOR);
+		dm->SetTile(1, 2, FLOOR);
+		// last row
+		dm->SetTile(2, 0, FLOOR);
+		dm->SetTile(2, 1, FLOOR);
+		dm->SetTile(2, 2, FLOOR);
+	}
+	void CreateModuleTesting(DungeonModule *dm)
+	{
+		// top row
+		dm->SetTile(0, 0, FLOOR);
+		dm->SetTile(0, 1, FLOOR);
+		dm->SetTile(0, 2, FLOOR);
+		dm->SetTile(0, 3, FLOOR);
+		dm->SetTile(0, 4, FLOOR);
+		// second row
+		dm->SetTile(1, 0, FLOOR);
+		dm->SetTile(1, 1, ICE);
+		dm->SetTile(1, 2, FLOOR);
+		dm->SetTile(1, 3, FIRE);
+		dm->SetTile(1, 4, FLOOR);
+		// third row
+		dm->SetTile(2, 0, FLOOR);
+		dm->SetTile(2, 1, ICE);
+		dm->SetTile(2, 2, FLOOR);
+		dm->SetTile(2, 3, FIRE);
+		dm->SetTile(2, 4, FLOOR);
+		// fourth row
+		dm->SetTile(3, 0, FLOOR);
+		dm->SetTile(3, 1, ICE);
+		dm->SetTile(3, 2, FLOOR);
+		dm->SetTile(3, 3, FIRE);
+		dm->SetTile(3, 4, FLOOR);
+		// last row
+		dm->SetTile(4, 0, FLOOR);
+		dm->SetTile(4, 1, FLOOR);
+		dm->SetTile(4, 2, FLOOR);
+		dm->SetTile(4, 3, FLOOR);
+		dm->SetTile(4, 4, FLOOR);
+	}
 
 	void MovePlayer(DIRECTION d)
 	{
@@ -72,13 +188,9 @@ private:
 		case WEST:  dp.col -= 1; break;
 		}
 		
-		// Keep the player within the boundry.
-		//if (m_cPos.col < 0) m_cPos.col = 0;
-		//else if (m_cPos.col > m_xBoard.cols() - 1) m_cPos.col = m_xBoard.cols() - 1;
+		// Keep the player within the boundry. (left and right)
 		if (m_cPos.col + dp.col < 0) return;
 		else if (m_cPos.col + dp.col > m_xBoard.cols() - 1) return;
-		//if (m_sPos.first < 0) m_sPos.first = 0; //technically shouldnt need this
-		//else if (m_sPos.first  > m_xBoard.rows() - 1) m_sPos.first  = m_xBoard.rows() - 1; //technically shouldnt need this either
 
 		OnPlayerStep(dp);
 		ShiftBoard(d);
@@ -90,17 +202,17 @@ private:
 		m_bSliding = false;
 		switch (nextTile)
 		{
-		case FLOOR:
-			break;
 		case WALL:
+			return; // don't step
 			break;
-		case ICE:
-			m_bSliding = true;
-			break;
+
 		case EMPTY:
 		case FIRE:
-			m_bAlive = false;
-			//gameover
+			m_bAlive = false; // dead
+			break;
+
+		case ICE:
+			m_bSliding = true;
 			break;
 
 		default:
@@ -109,6 +221,8 @@ private:
 
 		// Update the position
 		COORD2 newPos = m_cPos + dp;
+		// Update the depth
+		m_sDepth -= dp.row;
 		//Payers row position should never change.
 		newPos.row = 18;
 		m_cPos = newPos;
@@ -184,29 +298,37 @@ private:
 protected:
 	virtual bool OnUserCreate() 
 	{
+		m_xBoard.resize(30, 15); // (Height, Width)
+
 		spriteHERO		= new olcSprite(L"../OLC Sprite Editor/dungeon_hero.spr");
 		spriteFLOOR		= new olcSprite(L"../OLC Sprite Editor/dungeon_floor.spr");
 		spriteICE		= new olcSprite(L"../OLC Sprite Editor/dungeon_ice.spr");
 		spriteFIRE		= new olcSprite(L"../OLC Sprite Editor/dungeon_fire.spr");
 		spriteEMPTY		= new olcSprite(L"../OLC Sprite Editor/dungeon_empty.spr");
 
-		m_cPos.row = 18;
-		m_cPos.col = 7;
-		
 		m_sBufOffset.first = 0;
 		m_sBufOffset.second = 8;
 
-		m_xBoard.resize(30, 15); // (Height, Width)
-
+		m_cPos.row = 18;
+		m_cPos.col = 7;
 		m_dLastDirection = NORTH;
 		m_bSliding = false;
 		m_bAlive = true;
+		m_sDepth = 0;
 
 		//Make everything empty
 		for (int i = 15; i < m_xBoard.rows(); i++)
 			for (int j = 0; j < m_xBoard.cols(); j++)
 				m_xBoard(i, j).type = EMPTY;
 
+		DungeonModule startingArea = DungeonModule(3, 3);
+		CreateModuleStarting(&startingArea);
+		DrawModule(17, 6, &startingArea);
+
+		DungeonModule testingArea = DungeonModule(5, 5);
+		CreateModuleTesting(&testingArea);
+		DrawModule(12, 5, &testingArea);
+		
 //#pragma region 
 //		
 //		// I
@@ -262,7 +384,9 @@ protected:
 //		m_xBoard(28, 12).type = ICE;
 //		
 //#pragma endregion DEV LEVEL TILES
-#pragma region
+
+/*#pragma region
+
 		m_xBoard(19, 6).type = FLOOR;
 		m_xBoard(18, 6).type = FLOOR;
 		m_xBoard(17, 6).type = FLOOR;
@@ -293,7 +417,7 @@ protected:
 		m_xBoard(12, 8).type = FLOOR;
 		m_xBoard(11, 8).type = FLOOR;
 
-#pragma endregion STARTING TILES
+#pragma endregion*/
 		
 		UpdateScreen();
 
@@ -311,24 +435,34 @@ protected:
 		else if (m_keys[VK_DOWN].bPressed) MovePlayer(SOUTH);
 		else if (m_keys[VK_LEFT].bPressed) MovePlayer(WEST);
 		else if (m_keys[VK_RIGHT].bPressed) MovePlayer(EAST);
-		
+
 		return true;
 	}
 };
 
 int main()
 {
-	/* TODO **********************/
-	/* 
-		- Add player state
-		- Show stats on right side of screen 
-
-		- Make a main menu
-		- Make a level module editor
-	*/	
-
 	Dungeon dungeonGame;
 	dungeonGame.ConstructConsole(120, 120, 5, 5); //change first param for width
 	dungeonGame.Start();
 	return 0;
 }
+
+/* TODO **********************/
+/*
+- Figure out how display font larger than a tile.
+- Show stats on right side of screen
+
+- Make a main menu
+- Make a level module editor
+*/
+
+
+/* LEVEL MODULE EDITOR *******/
+/*
+- LOAD
+- SAVE
+- ENTITY PICKER
+- ERASE ENTITY
+- PLACE ENTITY
+*/
