@@ -5,7 +5,6 @@
 #ifndef TARRAY2D_H
 #define TARRAY2D_H
 
-
 #include <memory>
 #include <new>
 #include <exception>

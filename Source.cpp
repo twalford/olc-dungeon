@@ -1,83 +1,9 @@
 #include <iostream>
 #include "TArray.h"
 #include "olcConsoleGameEngine.h";
+#include "GameTypes.h";
+#include "DungeonModule.h";
 using namespace std;
-
-#pragma region
-enum compass_directions { NORTH = 0, EAST, SOUTH, WEST };
-enum entity_types { EMPTY = 0, FLOOR, WALL, ICE, FIRE, HERO };
-
-typedef entity_types ENTITY;
-
-typedef struct _tile
-{
-	ENTITY type;
-} TILE, *LPTILE;
-
-typedef compass_directions DIRECTION;
-typedef TArray2D<TILE> GAMEBOARD;
-
-COORD2 operator+=(COORD2 const& lhs, COORD2 const& rhs)
-{
-	COORD2 c = lhs;
-	c.col += rhs.col;
-	c.row += rhs.row;
-	return c;
-}
-
-COORD2 operator+(COORD2 const& lhs, COORD2 const& rhs)
-{
-	return lhs += rhs;
-}
-
-#pragma endregion GAME TYPES
-
-class DungeonModule
-{
-public:
-	DungeonModule() 
-	{
-
-	}
-
-	DungeonModule(short w, short h)
-	{
-		Create(w, h);
-	}
-
-	short width = 0;
-	short height = 0;
-
-private:
-	ENTITY *m_Tiles = nullptr;
-
-	void Create(short w, short h)
-	{
-		width = w;
-		height = h;
-		m_Tiles = new entity_types[w*h];
-		for (int i = 0; i < w*h; i++)
-			m_Tiles[i] = EMPTY;
-	}
-
-public:
-	void SetTile(short x, short y, ENTITY t)
-	{
-		if (x < 0 || x >= width || y < 0 || y >= height)
-			return;
-		else
-			m_Tiles[y * width + x] = t;
-	}
-
-	ENTITY GetTile(short x, short y)
-	{
-		if (x < 0 || x >= width || y < 0 || y >= height)
-			return EMPTY; // maybe change this to return null or some error tile.
-		else
-			return m_Tiles[y * width + x];
-	}
-
-};
 
 class Dungeon : public olcConsoleGameEngine
 {
@@ -300,11 +226,11 @@ protected:
 	{
 		m_xBoard.resize(30, 15); // (Height, Width)
 
-		spriteHERO		= new olcSprite(L"../OLC Sprite Editor/dungeon_hero.spr");
-		spriteFLOOR		= new olcSprite(L"../OLC Sprite Editor/dungeon_floor.spr");
-		spriteICE		= new olcSprite(L"../OLC Sprite Editor/dungeon_ice.spr");
-		spriteFIRE		= new olcSprite(L"../OLC Sprite Editor/dungeon_fire.spr");
-		spriteEMPTY		= new olcSprite(L"../OLC Sprite Editor/dungeon_empty.spr");
+		spriteHERO		= new olcSprite(L"sprites/dungeon_hero.spr");
+		spriteFLOOR		= new olcSprite(L"sprites/dungeon_floor.spr");
+		spriteICE		= new olcSprite(L"sprites/dungeon_ice.spr");
+		spriteFIRE		= new olcSprite(L"sprites/dungeon_fire.spr");
+		spriteEMPTY		= new olcSprite(L"sprites/dungeon_empty.spr");
 
 		m_sBufOffset.first = 0;
 		m_sBufOffset.second = 8;
