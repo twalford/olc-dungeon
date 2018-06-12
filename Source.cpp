@@ -16,16 +16,17 @@ public:
 private:
 	GAMEBOARD m_xBoard;
 
-	olcSprite *spriteHERO	= nullptr;
-	olcSprite *spriteSTONE	= nullptr;
-	olcSprite *spriteICE	= nullptr;
-	olcSprite *spriteFIRE	= nullptr;
-	olcSprite *spriteEMPTY	= nullptr;
-	olcSprite *spriteWOOD	= nullptr;
-	olcSprite *spriteWEB	= nullptr;
+	olcSprite *spriteHERO	= new olcSprite(L"sprites/dungeon_hero.spr");
+	olcSprite *spriteSTONE  = new olcSprite(L"sprites/dungeon_stone.spr");
+	olcSprite *spriteWALL	= new olcSprite(L"sprites/dungeon_wall.spr");
+	olcSprite *spriteICE	= new olcSprite(L"sprites/dungeon_ice.spr");
+	olcSprite *spriteFIRE	= new olcSprite(L"sprites/dungeon_fire.spr");
+	olcSprite *spriteEMPTY	= new olcSprite(L"sprites/dungeon_empty.spr");
+	olcSprite *spriteWOOD	= new olcSprite(L"sprites/dungeon_wood.spr");
+	olcSprite *spriteWEB	= new olcSprite(L"sprites/dungeon_web.spr");
 
-	DungeonModule *dmSTARTING = nullptr;
-	DungeonModule *dmTESTING = nullptr;
+	DungeonModule *dmSTARTING = new DungeonModule(L"modules/dm_starting.dumo");
+	DungeonModule *dmTESTING  = new DungeonModule(L"modules/dm_testing.dumo");
 
 	const short TILE_SIZE = 8;
 	pair<short, short> m_sBufOffset;
@@ -61,7 +62,7 @@ private:
 	void UpdateWeb(DIRECTION d) 
 	{
 		//TODO
-
+		// Make randomizer
 		m_bInWeb = false;
 	}
 
@@ -82,11 +83,11 @@ private:
 		if (m_cPos.col + dp.col < 0) return;
 		else if (m_cPos.col + dp.col > m_xBoard.cols() - 1) return;
 
-		OnPlayerStep(dp);
-		ShiftBoard(d);
+		if (OnPlayerStep(dp))
+			ShiftBoard(d);
 		UpdateScreen();
 	}
-	void OnPlayerStep(COORD2 dp)
+	bool OnPlayerStep(COORD2 dp)
 	{
 		ENTITY nextTile = m_xBoard(m_cPos + dp).type;
 		m_bSliding = false;
@@ -94,7 +95,7 @@ private:
 		switch (nextTile)
 		{
 		case WALL:
-			return; // don't step
+			return false; // don't step
 			break;
 
 		case EMPTY:
@@ -121,6 +122,7 @@ private:
 		newPos.row = 18;
 		m_cPos = newPos;
 
+		return true;
 	}
 	void ShiftBoard(DIRECTION d)
 	{
@@ -171,7 +173,8 @@ private:
 				{
 				case EMPTY:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteEMPTY);	break;	   
 				case HERO:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteHERO);	break;
-				case STONE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteSTONE);	break;	   
+				case STONE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteSTONE);	break;
+				case WALL:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWALL);	break;
 				case ICE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteICE);	break;	   
 				case FIRE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteFIRE);	break;
 				case WOOD:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWOOD);	break;
@@ -182,7 +185,7 @@ private:
 				}
 			}
 		}
-		//DrawSprite(m_sPos.second * TILE_SIZE, (m_sPos.first - m_sBufOffset.second) * TILE_SIZE, spriteHERO);
+
 		DrawSprite(m_cPos.col * TILE_SIZE, (m_cPos.row - m_sBufOffset.second) * TILE_SIZE, spriteHERO);
 	}
 
@@ -195,17 +198,6 @@ protected:
 	virtual bool OnUserCreate() 
 	{
 		m_xBoard.resize(30, 15); // (Height, Width)
-
-		spriteHERO		= new olcSprite(L"sprites/dungeon_hero.spr");
-		spriteSTONE		= new olcSprite(L"sprites/dungeon_stone.spr");
-		spriteICE		= new olcSprite(L"sprites/dungeon_ice.spr");
-		spriteFIRE		= new olcSprite(L"sprites/dungeon_fire.spr");
-		spriteEMPTY		= new olcSprite(L"sprites/dungeon_empty.spr");
-		spriteWOOD		= new olcSprite(L"sprites/dungeon_wood.spr");
-		spriteWEB		= new olcSprite(L"sprites/dungeon_web.spr");
-
-		dmSTARTING		= new DungeonModule(L"modules/dm_starting.dumo");
-		dmTESTING		= new DungeonModule(L"modules/dm_testing.dumo");
 
 		m_sBufOffset.first = 0;
 		m_sBufOffset.second = 8;
