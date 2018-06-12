@@ -19,23 +19,17 @@ private:
 	int nOffsetX = 0;
 	int nOffsetY = 0;
 	int nZoom = 8;
+	int nBrushSet = 1;
 	ENTITY eCurrentENTITY = EMPTY;
-	olcSprite *mySprites[6] = {
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr
-	};
-
-	int glyphsColors[6] = { 
-		FG_BLACK,		//EMPTY
-		FG_GREY,		//FLOOR
-		FG_DARK_GREY,	//WALL
-		FG_CYAN,		//ICE
-		FG_RED,			//FIRE
-		FG_GREEN		//HERO
+	olcSprite *mySprites[8] = {
+		new olcSprite(L"../OLCdungeon/sprites/dungeon_empty.spr"),
+		new olcSprite(L"../OLCdungeon/sprites/dungeon_stone.spr"),
+		new olcSprite(L"../OLCdungeon/sprites/dungeon_wall.spr"),
+		new olcSprite(L"../OLCdungeon/sprites/dungeon_ice.spr"),
+		new olcSprite(L"../OLCdungeon/sprites/dungeon_fire.spr"),
+		new olcSprite(L"../OLCdungeon/sprites/dungeon_hero.spr"),
+		new olcSprite(L"../OLCdungeon/sprites/dungeon_wood.spr"),
+		new olcSprite(L"../OLCdungeon/sprites/dungeon_web.spr")
 	};
 
 	DungeonModule *dm = nullptr;
@@ -45,14 +39,7 @@ protected:
 	virtual bool OnUserCreate()
 	{
 		dm = new DungeonModule(5, 5);
-		sCurrentModuleFile = L"dm_test";
-
-		mySprites[0] = new olcSprite(L"../OLCdungeon/sprites/dungeon_empty.spr");
-		mySprites[1] = new olcSprite(L"../OLCdungeon/sprites/dungeon_floor.spr");
-		mySprites[2] = new olcSprite(L"../OLCdungeon/sprites/dungeon_wall.spr");
-		mySprites[3] = new olcSprite(L"../OLCdungeon/sprites/dungeon_ice.spr");
-		mySprites[4] = new olcSprite(L"../OLCdungeon/sprites/dungeon_fire.spr");
-		mySprites[5] = new olcSprite(L"../OLCdungeon/sprites/dungeon_hero.spr");
+		sCurrentModuleFile = L"../OLCdungeon/modules/dm_testing.dumo";
 
 		return true;
 	}
@@ -69,26 +56,65 @@ protected:
 		if (nZoom < 2) nZoom = 2;
 
 		// Brushes
-		if (m_keys[VK_F1].bReleased) eCurrentENTITY = EMPTY;
-		if (m_keys[VK_F2].bReleased) eCurrentENTITY = FLOOR;
-		if (m_keys[VK_F3].bReleased) eCurrentENTITY = WALL;
-		if (m_keys[VK_F4].bReleased) eCurrentENTITY = ICE;
-		if (m_keys[VK_F5].bReleased) eCurrentENTITY = FIRE;
-
-		// Future brushes
-		//if (m_keys[VK_F6].bReleased) eCurrentENTITY = ;
-		//if (m_keys[VK_F7].bReleased) eCurrentENTITY = ;
-		//if (m_keys[VK_F8].bReleased) eCurrentENTITY = ;
-				// Once these are all used, implement shift key
-		//if (m_keys[L'1'].bReleased) eCurrentENTITY = ;
-		//if (m_keys[L'2'].bReleased) eCurrentENTITY = ;
-		//if (m_keys[L'3'].bReleased) eCurrentENTITY = ;
-		//if (m_keys[L'4'].bReleased) eCurrentENTITY = ;
-		//if (m_keys[L'5'].bReleased) eCurrentENTITY = ;
-		//if (m_keys[L'6'].bReleased) eCurrentENTITY = ;
-		//if (m_keys[L'7'].bReleased) eCurrentENTITY = ;
-		//if (m_keys[L'8'].bReleased) eCurrentENTITY = ;
+		if (nBrushSet == 1)
+		{
+			if (m_keys[0x31].bReleased) eCurrentENTITY = EMPTY;
+			if (m_keys[0x32].bReleased) eCurrentENTITY = STONE;
+			if (m_keys[0x33].bReleased) eCurrentENTITY = WALL;
+			if (m_keys[0x34].bReleased) eCurrentENTITY = ICE;
+			if (m_keys[0x35].bReleased) eCurrentENTITY = FIRE;
+			if (m_keys[0x36].bReleased) eCurrentENTITY = WOOD;
+			if (m_keys[0x37].bReleased) eCurrentENTITY = WEB;
+			//if (m_keys[0x38].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x39].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x30].bReleased) eCurrentENTITY = 
+		}
+		else if (nBrushSet == 2)
+		{
+			//if (m_keys[0x31].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x32].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x33].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x34].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x35].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x36].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x37].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x38].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x39].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x30].bReleased) eCurrentENTITY = 
+		}
+		else if (nBrushSet == 3)
+		{
+			//if (m_keys[0x31].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x32].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x33].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x34].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x35].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x36].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x37].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x38].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x39].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x30].bReleased) eCurrentENTITY = 
+		}
+		else if (nBrushSet == 4)
+		{
+			//if (m_keys[0x31].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x32].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x33].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x34].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x35].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x36].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x37].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x38].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x39].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x30].bReleased) eCurrentENTITY = 
+		}
 		
+		// Brush set selector
+		if (m_keys[VK_F1].bReleased) nBrushSet = 1;
+		if (m_keys[VK_F2].bReleased) nBrushSet = 2;
+		if (m_keys[VK_F3].bReleased) nBrushSet = 3;
+		if (m_keys[VK_F4].bReleased) nBrushSet = 4;
+
 		// Cursing
 		if (m_keys[VK_SHIFT].bHeld)
 		{
@@ -137,14 +163,19 @@ protected:
 		Fill(0,0,ScreenWidth(),ScreenHeight(), L' ', 0);
 
 		// Draw Menu
-		DrawString(1, 1, L"F1 = EMPTY  F2 = FLOOR  F3 = WALL  F4 = ICE  F5 = FIRE");
-		DrawString(1, 2, L"F9 = Load File  F10 = Save File");
-
-		DrawString(1, 5, L"Current ENTITY = ");
-		Draw(18, 5, PIXEL_SOLID, glyphsColors[eCurrentENTITY]);
+		DrawString(1, 1, L"F1-F4 = ENTITY SETS    F9 = Load File  F10 = Save File");
+		DrawString(1, 2, L"....");
+		Draw(nBrushSet, 2, L'o');
+		if		(nBrushSet == 1) DrawString(1, 3, L"1 = EMPTY  2 = FLOOR  3 = WALL   4 = ICE    5 = FIRE   6 = WOOD   7 = WEB    8 = ");
+		else if (nBrushSet == 2) DrawString(1, 3, L"1 =        2 =        3 =        4 =        5 =        6 =        7 =        8 = ");
+		else if (nBrushSet == 3) DrawString(1, 3, L"1 =        2 =        3 =        4 =        5 =        6 =        7 =        8 = ");
+		else if (nBrushSet == 4) DrawString(1, 3, L"1 =        2 =        3 =        4 =        5 =        6 =        7 =        8 = ");
+		
+		DrawString(1, 5, L"Current ENTITY:");
+		DrawSprite(1, 7, mySprites[eCurrentENTITY]);
 
 		// Draw Canvas
-		for (int x = 9; x < 118; x++)
+		for (int x = 10; x < 118; x++)
 		{
 			Draw(x, 9);
 			Draw(x, 80);
@@ -152,7 +183,7 @@ protected:
 
 		for (int y = 9; y < 81; y++)
 		{
-			Draw(9, y);
+			Draw(10, y);
 			Draw(118, y);
 		}
 
@@ -168,19 +199,17 @@ protected:
 					if (x - nOffsetX < dm->width && y - nOffsetY < dm->height && x - nOffsetX >= 0 && y - nOffsetY >= 0)
 					{
 						// Draw Sprite
-						DrawSprite(x * nZoom + 10,
+						DrawSprite(x * nZoom + 11,
 							y * nZoom + 10,
-							//(x + 1) * nZoom + 10,
-							//(y + 1) * nZoom + 10,
 							mySprites[dm->GetTile(x - nOffsetX, y - nOffsetY)]);
 
 						// Draw Pixel Markers
 						if (dm->GetTile(x - nOffsetX, y - nOffsetY) == EMPTY)
-							Draw((x) * nZoom + 10, (y) * nZoom + 10, L'.');
+							Draw((x) * nZoom + 11, (y) * nZoom + 10, L'.');
 					}
 
 					if (x - nOffsetX == nPosX && y - nOffsetY == nPosY)
-						Draw((x) * nZoom + 10, (y) * nZoom + 10, L'O');
+						Draw((x) * nZoom + 11, (y) * nZoom + 10, L'O');
 				}
 		}
 
