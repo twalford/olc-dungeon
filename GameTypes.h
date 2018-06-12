@@ -2,7 +2,16 @@
 #include "TArray.h";
 
 enum compass_directions { NORTH = 0, EAST, SOUTH, WEST };
-enum entity_types { EMPTY = 0, FLOOR, WALL, ICE, FIRE, HERO };
+enum entity_types { 
+	EMPTY = 0, 
+	STONE, 
+	WALL, 
+	ICE, 
+	FIRE, 
+	HERO,
+	WOOD,
+	WEB
+};
 
 typedef entity_types ENTITY;
 

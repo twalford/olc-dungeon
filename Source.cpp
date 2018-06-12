@@ -17,13 +17,15 @@ private:
 	GAMEBOARD m_xBoard;
 
 	olcSprite *spriteHERO	= nullptr;
-	olcSprite *spriteFLOOR	= nullptr;
+	olcSprite *spriteSTONE	= nullptr;
 	olcSprite *spriteICE	= nullptr;
 	olcSprite *spriteFIRE	= nullptr;
 	olcSprite *spriteEMPTY	= nullptr;
+	olcSprite *spriteWOOD	= nullptr;
+	olcSprite *spriteWEB	= nullptr;
 
-	DungeonModule *dmStarting = nullptr;
-	DungeonModule *dmTesting = nullptr;
+	DungeonModule *dmSTARTING = nullptr;
+	DungeonModule *dmTESTING = nullptr;
 
 	const short TILE_SIZE = 8;
 	pair<short, short> m_sBufOffset;
@@ -33,6 +35,7 @@ private:
 	DIRECTION m_dLastDirection;
 	bool m_bSliding;
 	bool m_bAlive;
+	bool m_bInWeb;
 	short m_sDepth;
 
 	void ModuleToBoard(int x, int y, ENTITY t)
@@ -53,6 +56,13 @@ private:
 				ModuleToBoard(x + i, y + j, dm->GetTile(j, i));
 			}
 		}
+	}
+
+	void UpdateWeb(DIRECTION d) 
+	{
+		//TODO
+
+		m_bInWeb = false;
 	}
 
 	void MovePlayer(DIRECTION d)
@@ -80,6 +90,7 @@ private:
 	{
 		ENTITY nextTile = m_xBoard(m_cPos + dp).type;
 		m_bSliding = false;
+		m_bInWeb = false;
 		switch (nextTile)
 		{
 		case WALL:
@@ -94,6 +105,9 @@ private:
 		case ICE:
 			m_bSliding = true;
 			break;
+
+		case WEB:
+			m_bInWeb = true;
 
 		default:
 			break;
@@ -157,9 +171,11 @@ private:
 				{
 				case EMPTY:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteEMPTY);	break;	   
 				case HERO:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteHERO);	break;
-				case FLOOR:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteFLOOR);	break;	   
+				case STONE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteSTONE);	break;	   
 				case ICE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteICE);	break;	   
-				case FIRE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteFIRE);	break;	   
+				case FIRE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteFIRE);	break;
+				case WOOD:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWOOD);	break;
+				case WEB:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWEB);	break;
 				default:	   
 					DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteEMPTY);
 					break;
@@ -181,13 +197,15 @@ protected:
 		m_xBoard.resize(30, 15); // (Height, Width)
 
 		spriteHERO		= new olcSprite(L"sprites/dungeon_hero.spr");
-		spriteFLOOR		= new olcSprite(L"sprites/dungeon_floor.spr");
+		spriteSTONE		= new olcSprite(L"sprites/dungeon_stone.spr");
 		spriteICE		= new olcSprite(L"sprites/dungeon_ice.spr");
 		spriteFIRE		= new olcSprite(L"sprites/dungeon_fire.spr");
 		spriteEMPTY		= new olcSprite(L"sprites/dungeon_empty.spr");
+		spriteWOOD		= new olcSprite(L"sprites/dungeon_wood.spr");
+		spriteWEB		= new olcSprite(L"sprites/dungeon_web.spr");
 
-		dmStarting		= new DungeonModule(L"modules/dm_starting.dumo");
-		dmTesting		= new DungeonModule(L"modules/dm_testing.dumo");
+		dmSTARTING		= new DungeonModule(L"modules/dm_starting.dumo");
+		dmTESTING		= new DungeonModule(L"modules/dm_testing.dumo");
 
 		m_sBufOffset.first = 0;
 		m_sBufOffset.second = 8;
@@ -196,6 +214,7 @@ protected:
 		m_cPos.col = 7;
 		m_dLastDirection = NORTH;
 		m_bSliding = false;
+		m_bInWeb = false;
 		m_bAlive = true;
 		m_sDepth = 0;
 
@@ -204,8 +223,8 @@ protected:
 			for (int j = 0; j < m_xBoard.cols(); j++)
 				m_xBoard(i, j).type = EMPTY;
 		
-		DrawModule(17, 6, dmStarting);
-		DrawModule(12, 5, dmTesting);
+		DrawModule(17, 6, dmSTARTING);
+		DrawModule(12, 5, dmTESTING);
 		
 		UpdateScreen();
 
@@ -219,10 +238,20 @@ protected:
 		if (m_bSliding)
 			MovePlayer(m_dLastDirection);
 
-		if (m_keys[VK_UP].bPressed) MovePlayer(NORTH);
-		else if (m_keys[VK_DOWN].bPressed) MovePlayer(SOUTH);
-		else if (m_keys[VK_LEFT].bPressed) MovePlayer(WEST);
-		else if (m_keys[VK_RIGHT].bPressed) MovePlayer(EAST);
+		if (m_bInWeb)
+		{
+			if (m_keys[VK_UP].bPressed) UpdateWeb(NORTH);
+			else if (m_keys[VK_DOWN].bPressed) UpdateWeb(SOUTH);
+			else if (m_keys[VK_LEFT].bPressed) UpdateWeb(WEST);
+			else if (m_keys[VK_RIGHT].bPressed)UpdateWeb(EAST);
+		}
+		else
+		{
+			if (m_keys[VK_UP].bPressed) MovePlayer(NORTH);
+			else if (m_keys[VK_DOWN].bPressed) MovePlayer(SOUTH);
+			else if (m_keys[VK_LEFT].bPressed) MovePlayer(WEST);
+			else if (m_keys[VK_RIGHT].bPressed) MovePlayer(EAST);
+		}
 
 		return true;
 	}
@@ -238,6 +267,7 @@ int main()
 
 /* TODO **********************/
 /*
+- Add more ENTITY.
 - Figure out how display font larger than a tile.
 - Show stats on right side of screen
 
