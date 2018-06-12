@@ -16,6 +16,12 @@ public:
 		Create(w, h);
 	}
 
+	DungeonModule(wstring sFile)
+	{
+		if (!Load(sFile))
+			Create(5, 5);
+	}
+
 	short width = 0;
 	short height = 0;
 
@@ -50,14 +56,45 @@ public:
 
 	bool Save(wstring sFile)
 	{
+		short ver = 2;
+
+		FILE *f = nullptr;
+		_wfopen_s(&f, sFile.c_str(), L"wb");
+		if (f == nullptr)
+			return false;
+
+		fwrite("DuMo", sizeof(char), 4, f);		//FILETYPE
+		fwrite(&ver, sizeof(short), 1, f);		//VERSION
+		fwrite(&width, sizeof(short), 1, f);	//WIDTH
+		fwrite(&height, sizeof(short), 1, f);	//HEIGHT
+		fwrite(m_Tiles, sizeof(int), width * height, f); //TILES
+
+		fclose(f);
 		return true;
-		// TODO
 	}
 
 	bool Load(wstring sFile)
 	{
+		char fileType[5];
+		short ver = 0;
+		width = 0;
+		height = 0;
+
+		FILE *f = nullptr;
+		_wfopen_s(&f, sFile.c_str(), L"rb");
+		if (f == nullptr)
+			return false;
+
+		fread(fileType, sizeof(char), 4, f);	//FILETYPE
+		fread(&ver, sizeof(short), 1, f);		//VERSION
+		fread(&width, sizeof(short), 1, f);		//WIDTH
+		fread(&height, sizeof(short), 1, f);	//HEIGHT
+
+		Create(width, height);
+		fread(m_Tiles, sizeof(int), width * height, f); //TILES
+
+		fclose(f);
 		return true;
-		// TODO
 	}
 
 };

@@ -22,6 +22,9 @@ private:
 	olcSprite *spriteFIRE	= nullptr;
 	olcSprite *spriteEMPTY	= nullptr;
 
+	DungeonModule *dmStarting = nullptr;
+	DungeonModule *dmTesting = nullptr;
+
 	const short TILE_SIZE = 8;
 	pair<short, short> m_sBufOffset;
 
@@ -47,58 +50,9 @@ private:
 		{
 			for (int j = 0; j < dm->height; j++)
 			{
-				ModuleToBoard(x + i, y + j, dm->GetTile(i, j));
+				ModuleToBoard(x + i, y + j, dm->GetTile(j, i));
 			}
 		}
-	}
-
-	void CreateModuleStarting(DungeonModule *dm)
-	{
-		// top row
-		dm->SetTile(0, 0, FLOOR);
-		dm->SetTile(0, 1, FLOOR);
-		dm->SetTile(0, 2, FLOOR);
-		// middle row
-		dm->SetTile(1, 0, FLOOR);
-		dm->SetTile(1, 1, FLOOR);
-		dm->SetTile(1, 2, FLOOR);
-		// last row
-		dm->SetTile(2, 0, FLOOR);
-		dm->SetTile(2, 1, FLOOR);
-		dm->SetTile(2, 2, FLOOR);
-	}
-	void CreateModuleTesting(DungeonModule *dm)
-	{
-		// top row
-		dm->SetTile(0, 0, FLOOR);
-		dm->SetTile(0, 1, FLOOR);
-		dm->SetTile(0, 2, FLOOR);
-		dm->SetTile(0, 3, FLOOR);
-		dm->SetTile(0, 4, FLOOR);
-		// second row
-		dm->SetTile(1, 0, FLOOR);
-		dm->SetTile(1, 1, ICE);
-		dm->SetTile(1, 2, FLOOR);
-		dm->SetTile(1, 3, FIRE);
-		dm->SetTile(1, 4, FLOOR);
-		// third row
-		dm->SetTile(2, 0, FLOOR);
-		dm->SetTile(2, 1, ICE);
-		dm->SetTile(2, 2, FLOOR);
-		dm->SetTile(2, 3, FIRE);
-		dm->SetTile(2, 4, FLOOR);
-		// fourth row
-		dm->SetTile(3, 0, FLOOR);
-		dm->SetTile(3, 1, ICE);
-		dm->SetTile(3, 2, FLOOR);
-		dm->SetTile(3, 3, FIRE);
-		dm->SetTile(3, 4, FLOOR);
-		// last row
-		dm->SetTile(4, 0, FLOOR);
-		dm->SetTile(4, 1, FLOOR);
-		dm->SetTile(4, 2, FLOOR);
-		dm->SetTile(4, 3, FLOOR);
-		dm->SetTile(4, 4, FLOOR);
 	}
 
 	void MovePlayer(DIRECTION d)
@@ -232,6 +186,9 @@ protected:
 		spriteFIRE		= new olcSprite(L"sprites/dungeon_fire.spr");
 		spriteEMPTY		= new olcSprite(L"sprites/dungeon_empty.spr");
 
+		dmStarting		= new DungeonModule(L"modules/dm_starting.dumo");
+		dmTesting		= new DungeonModule(L"modules/dm_testing.dumo");
+
 		m_sBufOffset.first = 0;
 		m_sBufOffset.second = 8;
 
@@ -246,104 +203,9 @@ protected:
 		for (int i = 15; i < m_xBoard.rows(); i++)
 			for (int j = 0; j < m_xBoard.cols(); j++)
 				m_xBoard(i, j).type = EMPTY;
-
-		DungeonModule startingArea = DungeonModule(3, 3);
-		CreateModuleStarting(&startingArea);
-		DrawModule(17, 6, &startingArea);
-
-		DungeonModule testingArea = DungeonModule(5, 5);
-		CreateModuleTesting(&testingArea);
-		DrawModule(12, 5, &testingArea);
 		
-//#pragma region 
-//		
-//		// I
-//		m_xBoard(1, 11).type = ICE;
-//		m_xBoard(1, 12).type = ICE;
-//		m_xBoard(1, 13).type = ICE;
-//		m_xBoard(2, 12).type = ICE;
-//		m_xBoard(3, 12).type = ICE;
-//		m_xBoard(4, 12).type = ICE;
-//		m_xBoard(5, 11).type = ICE;
-//		m_xBoard(5, 12).type = ICE;
-//		m_xBoard(5, 13).type = ICE;
-//		// N 
-//		
-//		m_xBoard(7, 11).type = FIRE;
-//		m_xBoard(7, 12).type = FIRE;
-//		m_xBoard(7, 13).type = FIRE;
-//		m_xBoard(8, 11).type = FIRE;
-//		m_xBoard(8, 13).type = FIRE;
-//		m_xBoard(9, 11).type = FIRE;
-//		m_xBoard(9, 13).type = FIRE;
-//		m_xBoard(10, 11).type = FIRE;
-//		m_xBoard(10, 13).type = FIRE;
-//		
-//		// D
-//		m_xBoard(14, 11).type = ICE;
-//		m_xBoard(14, 12).type = ICE;
-//		m_xBoard(15, 11).type = ICE;
-//		m_xBoard(15, 13).type = ICE;
-//		m_xBoard(16, 11).type = ICE;
-//		m_xBoard(16, 13).type = ICE;
-//		m_xBoard(17, 11).type = ICE;
-//		m_xBoard(17, 13).type = ICE;
-//		m_xBoard(18, 11).type = ICE;
-//		m_xBoard(18, 12).type = ICE;
-//		// E
-//		m_xBoard(20, 11).type = FIRE;
-//		m_xBoard(20, 12).type = FIRE;
-//		m_xBoard(20, 13).type = FIRE;
-//		m_xBoard(21, 11).type = FIRE;
-//		m_xBoard(22, 11).type = FIRE;
-//		m_xBoard(22, 12).type = FIRE;
-//		m_xBoard(22, 13).type = FIRE;
-//		m_xBoard(23, 11).type = FIRE;
-//		m_xBoard(24, 11).type = FIRE;
-//		m_xBoard(24, 12).type = FIRE;
-//		m_xBoard(24, 13).type = FIRE;
-//		// V
-//		m_xBoard(26, 11).type = ICE;
-//		m_xBoard(26, 13).type = ICE;
-//		m_xBoard(27, 11).type = ICE;
-//		m_xBoard(27, 13).type = ICE;
-//		m_xBoard(28, 12).type = ICE;
-//		
-//#pragma endregion DEV LEVEL TILES
-
-/*#pragma region
-
-		m_xBoard(19, 6).type = FLOOR;
-		m_xBoard(18, 6).type = FLOOR;
-		m_xBoard(17, 6).type = FLOOR;
-		m_xBoard(16, 6).type = FLOOR;
-		m_xBoard(15, 6).type = FLOOR;
-		m_xBoard(14, 6).type = FLOOR;
-		m_xBoard(13, 6).type = FLOOR;
-		m_xBoard(12, 6).type = FIRE;
-		m_xBoard(11, 6).type = FLOOR;
-
-		m_xBoard(19, 7).type = FLOOR;
-		m_xBoard(18, 7).type = FLOOR;
-		m_xBoard(17, 7).type = FLOOR;
-		m_xBoard(16, 7).type = FLOOR;
-		m_xBoard(15, 7).type = ICE;
-		m_xBoard(14, 7).type = ICE;
-		m_xBoard(13, 7).type = FLOOR;
-		m_xBoard(12, 7).type = FIRE;
-		m_xBoard(11, 7).type = FLOOR;
-
-		m_xBoard(19, 8).type = FLOOR;
-		m_xBoard(18, 8).type = FLOOR;
-		m_xBoard(17, 8).type = FLOOR;
-		m_xBoard(16, 8).type = FLOOR;
-		m_xBoard(15, 8).type = FLOOR;
-		m_xBoard(14, 8).type = FLOOR;
-		m_xBoard(13, 8).type = FLOOR;
-		m_xBoard(12, 8).type = FLOOR;
-		m_xBoard(11, 8).type = FLOOR;
-
-#pragma endregion*/
+		DrawModule(17, 6, dmStarting);
+		DrawModule(12, 5, dmTesting);
 		
 		UpdateScreen();
 
@@ -380,15 +242,4 @@ int main()
 - Show stats on right side of screen
 
 - Make a main menu
-- Make a level module editor
-*/
-
-
-/* LEVEL MODULE EDITOR *******/
-/*
-- LOAD
-- SAVE
-- ENTITY PICKER
-- ERASE ENTITY
-- PLACE ENTITY
 */
