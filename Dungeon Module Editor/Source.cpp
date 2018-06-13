@@ -20,7 +20,17 @@ private:
 	int nOffsetY = 0;
 	int nZoom = 8;
 	int nBrushSet = 1;
+	bool bCropMode = false;
+	ORIENTATION oCropOrientation = VERTICAL;
+	DIRECTION dInsertDirHori = SOUTH;
+	DIRECTION dInsertDirVert = EAST;
 	ENTITY eCurrentENTITY = EMPTY;
+	olcSprite *cropSprites[4] = {
+		new olcSprite(L"dumoEditor_cropNorth.spr"),
+		new olcSprite(L"dumoEditor_cropEast.spr"),
+		new olcSprite(L"dumoEditor_cropSouth.spr"),
+		new olcSprite(L"dumoEditor_cropWest.spr"),
+	};
 	olcSprite *mySprites[8] = {
 		new olcSprite(L"../OLCdungeon/sprites/dungeon_empty.spr"),
 		new olcSprite(L"../OLCdungeon/sprites/dungeon_stone.spr"),
@@ -45,6 +55,10 @@ protected:
 	}
 	virtual bool OnUserUpdate(float fElapsedTime)
 	{
+		// CropMode Selector
+		if (m_keys['C'].bReleased)
+			bCropMode = !bCropMode;
+
 		// Zooming 
 		if (m_keys[VK_PRIOR].bReleased)
 			nZoom <<= 1;
@@ -133,19 +147,47 @@ protected:
 
 		if (dm != nullptr)
 		{
-			if (nPosX < 0) nPosX = 0;
-			if (nPosX >= dm->width) nPosX = dm->width - 1;
-			if (nPosY < 0) nPosY = 0;
-			if (nPosY >= dm->height) nPosY = dm->height - 1;
-
-			if (m_keys[VK_SPACE].bReleased)
+			if (bCropMode) // Crop Mode
 			{
-				dm->SetTile(nPosX - 0, nPosY - 0, eCurrentENTITY);
+				if (nPosX < 0) nPosX = 0;
+				if (nPosX >= dm->width) nPosX = dm->width - 1;
+				if (nPosY < 0) nPosY = 0;
+				if (nPosY >= dm->height) nPosY = dm->height - 1;
+
+				if (m_keys[VK_DELETE].bReleased)
+					dm->CropRowOrCol(nPosX, nPosY, oCropOrientation);
+
+				if (m_keys[VK_INSERT].bReleased)
+					dm->InsertRowOrCol(nPosX, nPosY, dInsertDirVert, dInsertDirHori, oCropOrientation);
+
+				if (m_keys[VK_SPACE].bReleased)
+				{
+					if (oCropOrientation == VERTICAL)
+						dInsertDirVert = (DIRECTION)((dInsertDirVert + 2) % 4);
+					if (oCropOrientation == HORIZONTAL)
+						dInsertDirHori = (DIRECTION)((dInsertDirHori + 2) % 4);
+				}
+
+				if (m_keys['V'].bReleased)
+					oCropOrientation = (ORIENTATION)((oCropOrientation + 1) % 2);
 			}
-
-			if (m_keys[VK_DELETE].bReleased)
+			else //Edit Mode
 			{
-				dm->SetTile(nPosX - 0, nPosY - 0, EMPTY);
+				if (nPosX < 0) nPosX = 0;
+				if (nPosX >= dm->width) nPosX = dm->width - 1;
+				if (nPosY < 0) nPosY = 0;
+				if (nPosY >= dm->height) nPosY = dm->height - 1;
+
+				if (m_keys[VK_SPACE].bReleased)
+				{
+					dm->SetTile(nPosX - 0, nPosY - 0, eCurrentENTITY);
+				}
+
+				if (m_keys[VK_DELETE].bReleased)
+				{
+					dm->SetTile(nPosX - 0, nPosY - 0, EMPTY);
+				}
+
 			}
 
 			if (m_keys[VK_F9].bReleased)
@@ -206,10 +248,27 @@ protected:
 						// Draw Pixel Markers
 						if (dm->GetTile(x - nOffsetX, y - nOffsetY) == EMPTY)
 							Draw((x) * nZoom + 11, (y) * nZoom + 10, L'.');
-					}
 
+						// Draw Crop Markers
+						if (bCropMode)
+						{
+							if (oCropOrientation == VERTICAL)
+							{
+								if (x == nPosX)
+									DrawSprite((x)* nZoom + 11, (y)* nZoom + 10, cropSprites[dInsertDirVert]);
+							}
+							else if (oCropOrientation == HORIZONTAL)
+							{
+								if (y == nPosY)
+									DrawSprite((x)* nZoom + 11, (y)* nZoom + 10, cropSprites[dInsertDirHori]);
+									
+							}
+						}
+
+					}
 					if (x - nOffsetX == nPosX && y - nOffsetY == nPosY)
-						Draw((x) * nZoom + 11, (y) * nZoom + 10, L'O');
+						Draw((x)* nZoom + 11, (y)* nZoom + 10, L'O');
+					
 				}
 		}
 
