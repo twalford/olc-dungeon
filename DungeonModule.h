@@ -5,6 +5,7 @@
 
 class DungeonModule
 {
+
 public:
 	DungeonModule()
 	{
@@ -26,15 +27,24 @@ public:
 	short height = 0;
 
 private:
+	
+	ENTITY *tempTiles = nullptr;
 	ENTITY *m_Tiles = nullptr;
 
 	void Create(short w, short h)
 	{
 		width = w;
 		height = h;
-		m_Tiles = new entity_types[w*h];
+		m_Tiles = new ENTITY[w*h];
 		for (int i = 0; i < w*h; i++)
 			m_Tiles[i] = EMPTY;
+	}
+
+	void CreateTemp(short w, short h)
+	{
+		tempTiles = new ENTITY[w*h];
+		for (int i = 0; i < w*h; i++)
+			tempTiles[i] = EMPTY;
 	}
 
 public:
@@ -97,4 +107,98 @@ public:
 		return true;
 	}
 
+	bool CropRowOrCol(short x, short y, ORIENTATION o)
+	{
+		if (o == VERTICAL && width > 1)
+			DeleteCol(x);
+		else if (o == HORIZONTAL && height > 1)
+			DeleteRow(y);
+		else
+			return false;
+
+		return true;
+	}
+	void DeleteRow(short y)
+	{
+		CreateTemp(width, height - 1);
+		//Above Cut
+		for (int r = 0; r < y; r++)
+			for (int c = 0; c < width; c++)
+				tempTiles[r * (width)+c] = m_Tiles[r * (width)+c];
+
+		//Below Cut
+		for (int r = y + 1; r < height; r++)
+			for (int c = 0; c < width; c++)
+				tempTiles[(r - 1) * (width)+c] = m_Tiles[r * (width)+c];
+
+		Create(width, height - 1);
+		for (int i = 0; i < width*height; i++)
+			m_Tiles[i] = tempTiles[i];
+	}
+	void DeleteCol(short x)
+	{
+		CreateTemp(width - 1, height);
+		//Left of Cut
+		for (int r = 0; r < height; r++)
+			for (int c = 0; c < x; c++)
+				tempTiles[r * (width - 1) + c] = m_Tiles[r * (width)+c];
+
+		//Right of Cut
+		for (int r = 0; r < height; r++)
+			for (int c = x + 1; c < width; c++)
+				tempTiles[r * (width - 1) + c - 1] = m_Tiles[r * (width)+c];
+
+		Create(width - 1, height);
+		for (int i = 0; i < width*height; i++)
+			m_Tiles[i] = tempTiles[i];
+	}
+
+	bool InsertRowOrCol(short x, short y, DIRECTION v, DIRECTION h, ORIENTATION o)
+	{
+		if (o == VERTICAL)
+			InsertCol(x, v);
+		else if (o == HORIZONTAL)
+			InsertRow(y, h);
+		else
+			return false;
+
+		return true;
+	}
+	void InsertRow(short y, DIRECTION h)
+	{
+		CreateTemp(width, height + 1);
+		//Above Cut
+		for (int r = 0; r < y + (h / 2); r++)
+			for (int c = 0; c < width; c++)
+				tempTiles[r * (width)+c] = m_Tiles[r * (width)+c];
+
+		//Below Cut
+		for (int r = y + (h / 2); r < height; r++)
+			for (int c = 0; c < width; c++)
+				tempTiles[(r + 1) * (width)+c] = m_Tiles[r * (width)+c];
+
+		Create(width, height + 1);
+		for (int i = 0; i < width*height; i++)
+			m_Tiles[i] = tempTiles[i];
+	}
+	void InsertCol(short x, DIRECTION v)
+	{
+		CreateTemp(width + 1,height);
+		
+		if (v == EAST) x += 1;
+
+		//Left of Cut
+		for (int r = 0; r < height; r++)
+			for (int c = 0; c < x; c++)
+				tempTiles[r * (width + 1) + c] = m_Tiles[r * (width)+c];
+
+		//Right of Cut
+		for (int r = 0; r < height; r++)
+			for (int c = x; c < width; c++)
+				tempTiles[r * (width + 1) + c + 1] = m_Tiles[r * (width)+c];
+
+		Create(width + 1, height);
+		for (int i = 0; i < width*height; i++)
+			m_Tiles[i] = tempTiles[i];
+	}
 };

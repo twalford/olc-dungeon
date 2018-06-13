@@ -1,6 +1,9 @@
 #pragma once
 #include "TArray.h";
 
+enum orientations { VERTICAL = 0, HORIZONTAL };
+typedef orientations ORIENTATION;
+
 enum compass_directions { NORTH = 0, EAST, SOUTH, WEST };
 enum entity_types { 
 	EMPTY = 0, 
