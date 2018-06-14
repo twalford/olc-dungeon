@@ -25,9 +25,11 @@ private:
 	olcSprite *spriteWOOD	= new olcSprite(L"sprites/dungeon_wood.spr");
 	olcSprite *spriteWEB	= new olcSprite(L"sprites/dungeon_web.spr");
 
-	DungeonModule *dmSTARTING = new DungeonModule(L"modules/dm_starting.dumo");
-	DungeonModule *dmTESTING  = new DungeonModule(L"modules/dm_testing.dumo");
+	DungeonModule *dmSTARTING	= new DungeonModule(L"modules/dm_starting.dumo");
+	DungeonModule *dmTESTING	= new DungeonModule(L"modules/dm_testing.dumo");
+	DungeonModule *dmLOOPS		= new DungeonModule(L"modules/dm_loops.dumo");
 
+	const short PLAYER_ROW_CONST = 28;
 	const short TILE_SIZE = 8;
 	pair<short, short> m_sBufOffset;
 
@@ -50,9 +52,9 @@ private:
 		if (dm == nullptr)
 			return;
 
-		for (int i = 0; i < dm->width; i++)
+		for (int i = 0; i < dm->height; i++)
 		{
-			for (int j = 0; j < dm->height; j++)
+			for (int j = 0; j < dm->width; j++)
 			{
 				ModuleToBoard(x + i, y + j, dm->GetTile(j, i));
 			}
@@ -119,7 +121,7 @@ private:
 		// Update the depth
 		m_sDepth -= dp.row;
 		//Payers row position should never change.
-		newPos.row = 18;
+		newPos.row = PLAYER_ROW_CONST;
 		m_cPos = newPos;
 
 		return true;
@@ -197,12 +199,12 @@ private:
 protected:
 	virtual bool OnUserCreate() 
 	{
-		m_xBoard.resize(30, 15); // (Height, Width)
+		m_xBoard.resize(40, 15); // (Height, Width)
 
 		m_sBufOffset.first = 0;
-		m_sBufOffset.second = 8;
+		m_sBufOffset.second = 18;
 
-		m_cPos.row = 18;
+		m_cPos.row = 28;
 		m_cPos.col = 7;
 		m_dLastDirection = NORTH;
 		m_bSliding = false;
@@ -215,8 +217,9 @@ protected:
 			for (int j = 0; j < m_xBoard.cols(); j++)
 				m_xBoard(i, j).type = EMPTY;
 		
-		DrawModule(17, 6, dmSTARTING);
-		DrawModule(12, 5, dmTESTING);
+		DrawModule(27, 6, dmSTARTING);
+		DrawModule(18, 3, dmTESTING);
+		DrawModule(11, 4, dmLOOPS);
 		
 		UpdateScreen();
 
@@ -224,6 +227,10 @@ protected:
 	}
 	virtual bool OnUserUpdate(float fElapsedTime)
 	{
+		//Skip frame is window is unactive
+		if (GetConsoleWindow() != GetForegroundWindow())
+			return true;
+
 		if (!m_bAlive)
 			OnDeath();
 
