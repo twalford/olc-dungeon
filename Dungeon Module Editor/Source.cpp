@@ -49,12 +49,16 @@ protected:
 	virtual bool OnUserCreate()
 	{
 		dm = new DungeonModule(5, 5);
-		sCurrentModuleFile = L"../OLCdungeon/modules/dm_testing.dumo";
+		sCurrentModuleFile = L"../OLCdungeon/modules/dm_loops.dumo";
 
 		return true;
 	}
 	virtual bool OnUserUpdate(float fElapsedTime)
 	{
+		//Skip frame is window is unactive
+		if (GetConsoleWindow() != GetForegroundWindow())
+			return true;
+
 		// CropMode Selector
 		if (m_keys['C'].bReleased)
 			bCropMode = !bCropMode;
