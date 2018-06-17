@@ -24,6 +24,7 @@ private:
 	olcSprite *spriteEMPTY	= new olcSprite(L"sprites/dungeon_empty.spr");
 	olcSprite *spriteWOOD	= new olcSprite(L"sprites/dungeon_wood.spr");
 	olcSprite *spriteWEB	= new olcSprite(L"sprites/dungeon_web.spr");
+	olcSprite *spriteWEAK	= new olcSprite(L"sprites/dungeon_weakstone.spr");
 
 	DungeonModule *dmSTARTING	= new DungeonModule(L"modules/dm_starting.dumo");
 	DungeonModule *dmTESTING	= new DungeonModule(L"modules/dm_testing.dumo");
@@ -32,6 +33,10 @@ private:
 	const short PLAYER_ROW_CONST = 28;
 	const short TILE_SIZE = 8;
 	pair<short, short> m_sBufOffset;
+
+	float fAcc = 0.0f;
+	float fet = 0.0f;
+	int ticks = 0;
 
 	// Player states
 	COORD2 m_cPos;
@@ -56,7 +61,7 @@ private:
 		{
 			for (int j = 0; j < dm->width; j++)
 			{
-				ModuleToBoard(x + i, y + j, dm->GetTile(j, i));
+				ModuleToBoard(x + i, y + j, dm->GetEntity(j, i));
 			}
 		}
 	}
@@ -66,6 +71,17 @@ private:
 		//TODO
 		// Make randomizer
 		m_bInWeb = false;
+	}
+	void UpdateWeak(COORD2 c)
+	{
+		m_xBoard(c).e_state++;
+		if (m_xBoard(c).e_state == 8)
+		{
+			m_xBoard(c).e_state = 0;
+			m_xBoard(c).type = EMPTY;
+			if (m_cPos == c)
+				m_bAlive = false;
+		}
 	}
 
 	void MovePlayer(DIRECTION d)
@@ -87,14 +103,14 @@ private:
 
 		if (OnPlayerStep(dp))
 			ShiftBoard(d);
-		UpdateScreen();
+		//UpdateScreen();
 	}
 	bool OnPlayerStep(COORD2 dp)
 	{
-		ENTITY nextTile = m_xBoard(m_cPos + dp).type;
+		TILE nextTile = m_xBoard(m_cPos + dp);
 		m_bSliding = false;
 		m_bInWeb = false;
-		switch (nextTile)
+		switch (nextTile.type)
 		{
 		case WALL:
 			return false; // don't step
@@ -111,6 +127,11 @@ private:
 
 		case WEB:
 			m_bInWeb = true;
+			break;
+
+		case WEAKSTONE:
+			UpdateWeak(m_cPos + dp);
+			break;
 
 		default:
 			break;
@@ -137,9 +158,15 @@ private:
 				for (int c = m_xBoard.cols() - 1; c >= 0; c--)
 				{
 					if (r > 0)
+					{
 						m_xBoard(r, c).type = m_xBoard(r - 1, c).type;
+						m_xBoard(r, c).e_state = m_xBoard(r - 1, c).e_state;
+					}
 					else
+					{
 						m_xBoard(r, c).type = EMPTY;
+						m_xBoard(r, c).e_state = 0;
+					}
 				}
 			}
 			break;
@@ -151,9 +178,15 @@ private:
 				for (int c = 0; c < m_xBoard.cols(); c++)
 				{
 					if (r < m_xBoard.rows() - 1)
+					{
 						m_xBoard(r, c).type = m_xBoard(r + 1, c).type;
+						m_xBoard(r, c).e_state = m_xBoard(r + 1, c).e_state;
+					}
 					else
+					{
 						m_xBoard(r, c).type = EMPTY;
+						m_xBoard(r, c).e_state = 0;
+					}
 				}
 			}
 
@@ -181,6 +214,15 @@ private:
 				case FIRE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteFIRE);	break;
 				case WOOD:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWOOD);	break;
 				case WEB:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWEB);	break;
+				case WEAKSTONE:
+					if (m_xBoard(r + m_sBufOffset.second, c).e_state > 0)
+					{
+						COORD2 cell(r + m_sBufOffset.second, c);
+						if (ticks % 5 == 0)
+							UpdateWeak(cell);
+					}
+					DrawPartialSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWEAK, m_xBoard(r + m_sBufOffset.second, c).e_state * 8, 0, 8, 8);
+					break;
 				default:	   
 					DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteEMPTY);
 					break;
@@ -191,13 +233,7 @@ private:
 		DrawSprite(m_cPos.col * TILE_SIZE, (m_cPos.row - m_sBufOffset.second) * TILE_SIZE, spriteHERO);
 	}
 
-	void OnDeath() 
-	{
-		//GameOver
-	}
-
-protected:
-	virtual bool OnUserCreate() 
+	void OnReset()
 	{
 		m_xBoard.resize(40, 15); // (Height, Width)
 
@@ -216,23 +252,48 @@ protected:
 		for (int i = 15; i < m_xBoard.rows(); i++)
 			for (int j = 0; j < m_xBoard.cols(); j++)
 				m_xBoard(i, j).type = EMPTY;
-		
+
 		DrawModule(27, 6, dmSTARTING);
 		DrawModule(18, 3, dmTESTING);
 		DrawModule(11, 4, dmLOOPS);
-		
-		UpdateScreen();
+
+		m_xBoard(0, 0).type = ICE;
+		m_xBoard(0, 0).e_state = 2;
+		m_xBoard(0, 1).type = ICE;
+	}
+	void OnDeath() 
+	{
+		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_HALF, FG_RED);
+		if (m_keys[VK_SPACE].bPressed) OnReset();
+	}
+
+protected:
+	virtual bool OnUserCreate() 
+	{
+		OnReset();		
 
 		return true;
 	}
 	virtual bool OnUserUpdate(float fElapsedTime)
-	{
+	{	
+		fAcc += fElapsedTime;
+		if (fAcc > 0.05)
+		{
+			fAcc = 0;
+			ticks++;
+			UpdateScreen();
+			DrawString(0, 0, to_wstring(ticks));
+		}
+
 		//Skip frame is window is unactive
 		if (GetConsoleWindow() != GetForegroundWindow())
 			return true;
 
 		if (!m_bAlive)
+		{
 			OnDeath();
+			return true;
+		}
 
 		if (m_bSliding)
 			MovePlayer(m_dLastDirection);

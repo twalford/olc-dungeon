@@ -13,7 +13,8 @@ enum entity_types {
 	FIRE, 
 	HERO,
 	WOOD,
-	WEB
+	WEB,
+	WEAKSTONE
 };
 
 typedef entity_types ENTITY;
@@ -21,6 +22,8 @@ typedef entity_types ENTITY;
 typedef struct _tile
 {
 	ENTITY type;
+	short e_state;
+
 } TILE, *LPTILE;
 
 typedef compass_directions DIRECTION;
@@ -37,4 +40,12 @@ COORD2 operator+=(COORD2 const& lhs, COORD2 const& rhs)
 COORD2 operator+(COORD2 const& lhs, COORD2 const& rhs)
 {
 	return lhs += rhs;
+}
+
+bool operator==(COORD2 const& lhs, COORD2 const& rhs)
+{
+	if (lhs.col == rhs.col && lhs.row == rhs.row)
+		return true;
+	else
+		return false;
 }
