@@ -25,6 +25,12 @@ private:
 	olcSprite *spriteWOOD	= new olcSprite(L"sprites/dungeon_wood.spr");
 	olcSprite *spriteWEB	= new olcSprite(L"sprites/dungeon_web.spr");
 	olcSprite *spriteWEAK	= new olcSprite(L"sprites/dungeon_weakstone.spr");
+	olcSprite *spritePORTAL_START_BLUE	= new olcSprite(L"sprites/dungeon_portal_start_blue.spr");
+	olcSprite *spritePORTAL_END_BLUE	= new olcSprite(L"sprites/dungeon_portal_end_blue.spr");
+	olcSprite *spritePORTAL_START_RED	= new olcSprite(L"sprites/dungeon_portal_start_red.spr");
+	olcSprite *spritePORTAL_END_RED		= new olcSprite(L"sprites/dungeon_portal_end_red.spr");
+	olcSprite *spritePORTAL_START_GREEN = new olcSprite(L"sprites/dungeon_portal_start_green.spr");
+	olcSprite *spritePORTAL_END_GREEN	= new olcSprite(L"sprites/dungeon_portal_end_green.spr");
 
 	DungeonModule *dmSTARTING	= new DungeonModule(L"modules/dm_starting.dumo");
 	DungeonModule *dmTESTING	= new DungeonModule(L"modules/dm_testing.dumo");
@@ -46,10 +52,11 @@ private:
 	bool m_bInWeb;
 	short m_sDepth;
 
-	void ModuleToBoard(int x, int y, ENTITY t)
+	void ModuleToBoard(int x, int y, ENTITY e, short s)
 	{
 		if (x >= 0 && x < m_xBoard.rows() && y >= 0 && y < m_xBoard.cols()) {
-			m_xBoard(x, y).type = t;
+			m_xBoard(x, y).type = e;
+			m_xBoard(x, y).e_state = s;
 		}
 	}
 	void DrawModule(short x, short y, DungeonModule *dm)
@@ -57,13 +64,70 @@ private:
 		if (dm == nullptr)
 			return;
 
+		ENTITY e;
+		short s = 0;
+
 		for (int i = 0; i < dm->height; i++)
 		{
 			for (int j = 0; j < dm->width; j++)
 			{
-				ModuleToBoard(x + i, y + j, dm->GetEntity(j, i));
+				e = dm->GetEntity(j, i);
+				s = 0;
+
+				if (e == 9 || e == 11 || e == 13)
+					s = FindEncodeToPortal(j,i,dm,e);
+
+				ModuleToBoard(x + i, y + j, e, s);
 			}
 		}
+	}
+
+	short FindEncodeToPortal(short ax, short ay, DungeonModule *dm, ENTITY e)
+	{
+		for (int i = 0; i < dm->height; i++)
+			for (int j = 0; j < dm->width; j++)
+				if (dm->GetEntity(j, i) == e + 1)
+				{
+					/* Yes, I'm attempting to store 2 shorts into 1.
+					The first byte will hold the ROW offset.
+					The second byte will hold the COL offset.
+					Short to char should okay here because we will
+					only be teleporting around 2 to 5 tiles.
+
+						 dx = 0000 0000  0000 0011 = 0x0003 =  3
+						 dy = 1111 1111  1111 1101 = 0xfffd = -3
+				    e_state = 0000 0011  1111 1101 = 0x03fd = 1021	
+					
+					I'm hoping this will save some computation time 
+					in ShiftBoard()	by having 1 less short to assign 
+					600 times.	*/
+
+					short v = j - ax;
+					v <<= 8;
+					v |= ((i - ay) & 0x00ff);
+					return v;
+				}
+
+		return 0;
+	}
+	void TeleportUsingState(COORD2 c)
+	{
+		// Extracting 2 shorts(chars) from a short.
+		short state = m_xBoard(c).e_state;
+		// dx will be the change in width.
+		short dx = state >> 8;
+		// dy will be the change in height.
+		short dy = state & 0x00ff;
+		// If its a negative, we have to set the
+		// first byte to ff.
+		if (dy > 0x00f0)
+			dy |= 0xff00;
+
+		m_cPos.col = c.col + dx;
+		m_sDepth -= dy;
+
+		for (int i = 0; i < abs(dy); i++)
+			ShiftBoard(dy < 0 ? NORTH : SOUTH);
 	}
 
 	void UpdateWeb(DIRECTION d) 
@@ -131,6 +195,13 @@ private:
 
 		case WEAKSTONE:
 			UpdateWeak(m_cPos + dp);
+			break;
+
+		case PORTAL_START_BLUE:
+		case PORTAL_START_RED:
+		case PORTAL_START_GREEN:
+			TeleportUsingState(m_cPos + dp);
+			return true;
 			break;
 
 		default:
@@ -214,6 +285,13 @@ private:
 				case FIRE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteFIRE);	break;
 				case WOOD:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWOOD);	break;
 				case WEB:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWEB);	break;
+				case PORTAL_START_BLUE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spritePORTAL_START_BLUE);	break;
+				case PORTAL_END_BLUE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spritePORTAL_END_BLUE);	break;
+				case PORTAL_START_RED:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spritePORTAL_START_RED);	break;
+				case PORTAL_END_RED:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spritePORTAL_END_RED);		break;
+				case PORTAL_START_GREEN:DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spritePORTAL_START_GREEN);	break;
+				case PORTAL_END_GREEN:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spritePORTAL_END_GREEN);	break;
+
 				case WEAKSTONE:
 					if (m_xBoard(r + m_sBufOffset.second, c).e_state > 0)
 					{
@@ -223,6 +301,7 @@ private:
 					}
 					DrawPartialSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWEAK, m_xBoard(r + m_sBufOffset.second, c).e_state * 8, 0, 8, 8);
 					break;
+
 				default:	   
 					DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteEMPTY);
 					break;
@@ -270,8 +349,7 @@ private:
 protected:
 	virtual bool OnUserCreate() 
 	{
-		OnReset();		
-
+		OnReset();	
 		return true;
 	}
 	virtual bool OnUserUpdate(float fElapsedTime)
