@@ -6,7 +6,7 @@ typedef orientations ORIENTATION;
 
 enum compass_directions { NORTH = 0, EAST, SOUTH, WEST };
 enum entity_types { 
-	EMPTY = 0, 
+	EMPTY = 0x0000, 
 	STONE, 
 	WALL, 
 	ICE, 
@@ -20,7 +20,12 @@ enum entity_types {
 	PORTAL_START_RED,
 	PORTAL_END_RED,
 	PORTAL_START_GREEN,
-	PORTAL_END_GREEN
+	PORTAL_END_GREEN,
+
+	POT_STONE = 0x1000,
+	POT_STONE_BROKEN,
+	POT_ICE,
+	POT_ICE_BROKEN
 };
 
 typedef entity_types ENTITY;

@@ -25,6 +25,7 @@ private:
 	olcSprite *spriteWOOD	= new olcSprite(L"sprites/dungeon_wood.spr");
 	olcSprite *spriteWEB	= new olcSprite(L"sprites/dungeon_web.spr");
 	olcSprite *spriteWEAK	= new olcSprite(L"sprites/dungeon_weakstone.spr");
+	olcSprite *spritePOTS	= new olcSprite(L"sprites/dungeon_pot.spr");
 	olcSprite *spritePORTAL_START_BLUE	= new olcSprite(L"sprites/dungeon_portal_start_blue.spr");
 	olcSprite *spritePORTAL_END_BLUE	= new olcSprite(L"sprites/dungeon_portal_end_blue.spr");
 	olcSprite *spritePORTAL_START_RED	= new olcSprite(L"sprites/dungeon_portal_start_red.spr");
@@ -52,11 +53,11 @@ private:
 	bool m_bInWeb;
 	short m_sDepth;
 
-	void ModuleToBoard(int x, int y, ENTITY e, short s)
+	void ModuleToBoard(int x, int y, TILE t)
 	{
 		if (x >= 0 && x < m_xBoard.rows() && y >= 0 && y < m_xBoard.cols()) {
-			m_xBoard(x, y).type = e;
-			m_xBoard(x, y).e_state = s;
+			m_xBoard(x, y).type = t.type;
+			m_xBoard(x, y).e_state = t.e_state;
 		}
 	}
 	void DrawModule(short x, short y, DungeonModule *dm)
@@ -64,25 +65,54 @@ private:
 		if (dm == nullptr)
 			return;
 
-		ENTITY e;
-		short s = 0;
+		TILE t;
+		t.e_state = 0;
 
 		for (int i = 0; i < dm->height; i++)
 		{
 			for (int j = 0; j < dm->width; j++)
 			{
-				e = dm->GetEntity(j, i);
-				s = 0;
+				t.type = dm->GetEntity(j, i);
+				t.e_state = 0;
 
-				if (e == 9 || e == 11 || e == 13)
-					s = FindEncodeToPortal(j,i,dm,e);
+				if (t.type == 9 || t.type == 11 || t.type == 13)
+					t.e_state = SetEncodeToPortal(j, i, dm, t.type);
 
-				ModuleToBoard(x + i, y + j, e, s);
+				if (t.type >= 4096 && t.type <= 4100)
+					t = SetEncodeForPot(dm, t.type);
+
+				ModuleToBoard(x + i, y + j, t);
 			}
 		}
 	}
 
-	short FindEncodeToPortal(short ax, short ay, DungeonModule *dm, ENTITY e)
+	TILE SetEncodeForPot(DungeonModule *dm, ENTITY e)
+	{
+		TILE rt;
+		switch (e)
+		{
+		case POT_ICE:
+			rt.type = POT_ICE;
+			rt.e_state = 0;
+			break;
+		case POT_ICE_BROKEN:
+			rt.type = POT_ICE;
+			rt.e_state = 1;
+			break;
+		case POT_STONE:
+			rt.type = POT_STONE;
+			rt.e_state = 0;
+			break;
+		case POT_STONE_BROKEN:
+			rt.type = POT_STONE;
+			rt.e_state = 1;
+			break;
+		default:
+			break;
+		}
+		return rt;
+	}
+	short SetEncodeToPortal(short ax, short ay, DungeonModule *dm, ENTITY e)
 	{
 		for (int i = 0; i < dm->height; i++)
 			for (int j = 0; j < dm->width; j++)
@@ -204,6 +234,29 @@ private:
 			return true;
 			break;
 
+		case POT_ICE:
+			m_xBoard(m_cPos + dp).e_state++;
+			if (nextTile.e_state == 1)
+			{
+				m_xBoard(m_cPos + dp).type = ICE;
+				m_xBoard(m_cPos + dp).e_state = 0;
+				m_bSliding = true;
+			}
+			else
+				return false;
+			break;
+
+		case POT_STONE:
+			m_xBoard(m_cPos + dp).e_state++;
+			if (nextTile.e_state == 1)
+			{
+				m_xBoard(m_cPos + dp).type = STONE;
+				m_xBoard(m_cPos + dp).e_state = 0;
+			}
+			else
+				return false;
+			break;
+
 		default:
 			break;
 		}
@@ -300,6 +353,16 @@ private:
 							UpdateWeak(cell);
 					}
 					DrawPartialSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWEAK, m_xBoard(r + m_sBufOffset.second, c).e_state * 8, 0, 8, 8);
+					break;
+
+				case POT_ICE:
+					DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteICE);
+					DrawPartialSprite(c * TILE_SIZE, r * TILE_SIZE, spritePOTS, m_xBoard(r + m_sBufOffset.second, c).e_state * 8, 0, 8, 8);
+					break;
+
+				case POT_STONE:
+					DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteSTONE);
+					DrawPartialSprite(c * TILE_SIZE, r * TILE_SIZE, spritePOTS, m_xBoard(r + m_sBufOffset.second, c).e_state * 8, 0, 8, 8);
 					break;
 
 				default:	   
