@@ -197,6 +197,9 @@ private:
 	wchar_t *m_Glyphs = nullptr;
 	short *m_Colours = nullptr;
 
+	wchar_t *m_GlyphsTemp = nullptr;
+	short *m_ColoursTemp = nullptr;
+
 	void Create(int w, int h)
 	{
 		nWidth = w;
@@ -207,6 +210,16 @@ private:
 		{
 			m_Glyphs[i] = L' ';
 			m_Colours[i] = FG_BLACK;
+		}
+	}
+	void CreateTemp(int w, int h)
+	{
+		m_GlyphsTemp = new wchar_t[w*h];
+		m_ColoursTemp = new short[w*h];
+		for (int i = 0; i < w*h; i++)
+		{
+			m_GlyphsTemp[i] = L' ';
+			m_ColoursTemp[i] = FG_BLACK;
 		}
 	}
 
@@ -261,6 +274,70 @@ public:
 			return FG_BLACK;
 		else
 			return m_Colours[sy * nWidth + sx];
+	}
+
+	void Insert8ColsOnRight()
+	{
+		CreateTemp(nWidth + 8, nHeight);
+
+		for (int r = 0; r < nHeight; r++)
+			for (int c = 0; c < nWidth; c++)
+			{
+				m_ColoursTemp[r * (nWidth + 8) + c] = m_Colours[r * (nWidth)+c];
+				m_GlyphsTemp[r * (nWidth + 8) + c] = m_Glyphs[r * (nWidth)+c];
+			}
+
+		Create(nWidth + 8, nHeight);
+		for (int i = 0; i < nWidth*nHeight; i++)
+		{
+			m_Colours[i] = m_ColoursTemp[i];
+			m_Glyphs[i] = m_GlyphsTemp[i];
+		}
+	}
+	void Delete8ColsOnRight()
+	{
+		if (nWidth <= 8)
+			return;
+
+		CreateTemp(nWidth - 8, nHeight);
+
+		for (int r = 0; r < nHeight; r++)
+			for (int c = 0; c < nWidth - 8; c++)
+			{
+				m_ColoursTemp[r * (nWidth - 8) + c] = m_Colours[r * (nWidth)+c];
+				m_GlyphsTemp[r * (nWidth - 8) + c] = m_Glyphs[r * (nWidth)+c];
+			}
+
+		Create(nWidth - 8, nHeight);
+		for (int i = 0; i < nWidth*nHeight; i++)
+		{
+			m_Colours[i] = m_ColoursTemp[i];
+			m_Glyphs[i] = m_GlyphsTemp[i];
+		}
+	}
+
+	void Copy8(short x)
+	{
+		if (nWidth < x + 8) return;
+		CreateTemp(8, 8);
+		
+		for (int r = 0; r < nHeight; r++)
+			for (int c = x; c < x + 8; c++)
+			{
+				m_ColoursTemp[(r * 8) + c - x] = m_Colours[(r * nWidth) + c];
+				m_GlyphsTemp[(r * 8) + c - x] = m_Glyphs[(r * nWidth) + c];
+			}
+	}
+	void Paste8(short x)
+	{
+		if (nWidth < x + 8)	return;
+		
+		for (int r = 0; r < nHeight; r++)
+			for (int c = x; c < x + 8; c++)
+			{
+				m_Colours[(r * nWidth) + c] = m_ColoursTemp[(r * 8) + c - x];
+				m_Glyphs[(r * nWidth) + c] = m_GlyphsTemp[(r * 8) + c - x];
+			}
 	}
 
 	bool Save(wstring sFile)
