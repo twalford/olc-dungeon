@@ -48,6 +48,7 @@ private:
 		new olcSprite(L"../OLCdungeon/sprites/dungeon_portal_start_green.spr"),
 		new olcSprite(L"../OLCdungeon/sprites/dungeon_portal_end_green.spr")
 	};
+	olcSprite *mySprites_Pot = new olcSprite(L"../OLCdungeon/sprites/dungeon_pot.spr");
 
 	DungeonModule *dm = nullptr;
 	wstring sCurrentModuleFile;
@@ -91,8 +92,8 @@ protected:
 			if (m_keys[0x36].bReleased) eCurrentENTITY = WOOD;
 			if (m_keys[0x37].bReleased) eCurrentENTITY = WEB;
 			if (m_keys[0x38].bReleased) eCurrentENTITY = WEAKSTONE;
-			//if (m_keys[0x39].bReleased) eCurrentENTITY = 
-			//if (m_keys[0x30].bReleased) eCurrentENTITY = 
+			//if (m_keys[0x39].bReleased) eCurrentENTITY =
+			//if (m_keys[0x30].bReleased) eCurrentENTITY =
 		}
 		else if (nBrushSet == 2)
 		{
@@ -109,10 +110,10 @@ protected:
 		}
 		else if (nBrushSet == 3)
 		{
-			//if (m_keys[0x31].bReleased) eCurrentENTITY = 
-			//if (m_keys[0x32].bReleased) eCurrentENTITY = 
-			//if (m_keys[0x33].bReleased) eCurrentENTITY = 
-			//if (m_keys[0x34].bReleased) eCurrentENTITY = 
+			if (m_keys[0x31].bReleased) eCurrentENTITY = POT_ICE;
+			if (m_keys[0x32].bReleased) eCurrentENTITY = POT_ICE_BROKEN;
+			if (m_keys[0x33].bReleased) eCurrentENTITY = POT_STONE;
+			if (m_keys[0x34].bReleased) eCurrentENTITY = POT_STONE_BROKEN;
 			//if (m_keys[0x35].bReleased) eCurrentENTITY = 
 			//if (m_keys[0x36].bReleased) eCurrentENTITY = 
 			//if (m_keys[0x37].bReleased) eCurrentENTITY = 
@@ -219,10 +220,10 @@ protected:
 		DrawString(1, 1, L"F1-F4 = ENTITY SETS    F9 = Load File  F10 = Save File");
 		DrawString(1, 2, L"....");
 		Draw(nBrushSet, 2, L'o');
-		if		(nBrushSet == 1) DrawString(1, 3, L"1 = EMPTY  2 = FLOOR  3 = WALL   4 = ICE    5 = FIRE   6 = WOOD   7 = WEB    8 = WEAK");
-		else if (nBrushSet == 2) DrawString(1, 3, L"1 = PTL BS 2 = PTL BE 3 = PTL RS 4 = PTL RE 5 = PTL GS 6 = PTL GE 7 =        8 = ");
-		else if (nBrushSet == 3) DrawString(1, 3, L"1 =        2 =        3 =        4 =        5 =        6 =        7 =        8 = ");
-		else if (nBrushSet == 4) DrawString(1, 3, L"1 =        2 =        3 =        4 =        5 =        6 =        7 =        8 = ");
+		if		(nBrushSet == 1) DrawString(1, 3, L"1=EMPTY   2=FLOOR   3=WALL    4=ICE     5=FIRE    6=WOOD    7=WEB     8=WEAK    9= ");
+		else if (nBrushSet == 2) DrawString(1, 3, L"1=PTL BS  2=PTL BE  3=PTL RS  4=PTL RE  5=PTL GS  6=PTL GE  7=        8=        9= ");
+		else if (nBrushSet == 3) DrawString(1, 3, L"1=POT I   2=POT IB  3=POT S   4=POT SB  5=        6=        7=        8=        9= ");
+		else if (nBrushSet == 4) DrawString(1, 3, L"1=        2=        3=        4=        5=        6=        7=        8=        9= ");
 		
 		DrawString(1, 5, L"Current ENTITY:");
 		//DrawSprite(1, 7, mySprites[eCurrentENTITY]);
@@ -253,13 +254,63 @@ protected:
 					if (x - nOffsetX < dm->width && y - nOffsetY < dm->height && x - nOffsetX >= 0 && y - nOffsetY >= 0)
 					{
 						// Draw Sprite
-						//DrawSprite(x * nZoom + 11,
-						//	y * nZoom + 10,
-						//	mySprites[dm->GetEntity(x - nOffsetX, y - nOffsetY)]);
-						DrawPartialSprite(x * nZoom + 11,
-							y * nZoom + 10,
-							mySprites[dm->GetEntity(x - nOffsetX, y - nOffsetY)],
-							0,0,8,8);
+						//if non regular
+						if (dm->GetEntity(x - nOffsetX, y - nOffsetY) >= 0x1000)
+						{
+							//Draw the ground first.
+							//Draw the pot type second.
+							switch (dm->GetEntity(x - nOffsetX, y - nOffsetY))
+							{
+							case POT_ICE:
+								DrawPartialSprite(x * nZoom + 11,
+									y * nZoom + 10,
+									mySprites[ICE],
+									0, 0, 8, 8);
+								DrawPartialSprite(x * nZoom + 11,
+									y * nZoom + 10,
+									mySprites_Pot,
+									0, 0, 8, 8);
+								break;
+							case POT_ICE_BROKEN:
+								DrawPartialSprite(x * nZoom + 11,
+									y * nZoom + 10,
+									mySprites[ICE],
+									0, 0, 8, 8);
+								DrawPartialSprite(x * nZoom + 11,
+									y * nZoom + 10,
+									mySprites_Pot,
+									8, 0, 8, 8);
+								break;
+							case POT_STONE:
+								DrawPartialSprite(x * nZoom + 11,
+									y * nZoom + 10,
+									mySprites[STONE],
+									0, 0, 8, 8);
+								DrawPartialSprite(x * nZoom + 11,
+									y * nZoom + 10,
+									mySprites_Pot,
+									0, 0, 8, 8);
+								break;
+							case POT_STONE_BROKEN:
+								DrawPartialSprite(x * nZoom + 11,
+									y * nZoom + 10,
+									mySprites[STONE],
+									0, 0, 8, 8);
+								DrawPartialSprite(x * nZoom + 11,
+									y * nZoom + 10,
+									mySprites_Pot,
+									8, 0, 8, 8);
+								break;
+							}
+						}
+						else
+						{
+							//Draw the normal sprite
+							DrawPartialSprite(x * nZoom + 11,
+								y * nZoom + 10,
+								mySprites[dm->GetEntity(x - nOffsetX, y - nOffsetY)],
+								0,0,8,8);
+						}
 
 						// Draw Pixel Markers
 						if (dm->GetEntity(x - nOffsetX, y - nOffsetY) == EMPTY)
