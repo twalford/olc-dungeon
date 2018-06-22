@@ -1,8 +1,9 @@
 #include <iostream>
 #include "TArray.h"
-#include "olcConsoleGameEngine.h";
-#include "GameTypes.h";
-#include "DungeonModule.h";
+#include "olcConsoleGameEngine.h"
+#include "GameTypes.h"
+#include "DungeonModule.h"
+#include "SpriteSheet.h"
 using namespace std;
 
 class Dungeon : public olcConsoleGameEngine
@@ -15,6 +16,7 @@ public:
 
 private:
 	GAMEBOARD m_xBoard;
+	SpriteSheet spriteFONT;
 
 	olcSprite *spriteHERO	= new olcSprite(L"sprites/dungeon_hero.spr");
 	olcSprite *spriteSTONE  = new olcSprite(L"sprites/dungeon_stone.spr");
@@ -31,7 +33,7 @@ private:
 	olcSprite *spritePORTAL_START_RED	= new olcSprite(L"sprites/dungeon_portal_start_red.spr");
 	olcSprite *spritePORTAL_END_RED		= new olcSprite(L"sprites/dungeon_portal_end_red.spr");
 	olcSprite *spritePORTAL_START_GREEN = new olcSprite(L"sprites/dungeon_portal_start_green.spr");
-	olcSprite *spritePORTAL_END_GREEN	= new olcSprite(L"sprites/dungeon_portal_end_green.spr");
+	olcSprite *spritePORTAL_END_GREEN = new olcSprite(L"sprites/dungeon_portal_end_green.spr");
 
 	DungeonModule *dmSTARTING	= new DungeonModule(L"modules/dm_starting.dumo");
 	DungeonModule *dmTESTING	= new DungeonModule(L"modules/dm_testing.dumo");
@@ -44,6 +46,8 @@ private:
 	float fAcc = 0.0f;
 	float fet = 0.0f;
 	int ticks = 0;
+	int smy = 0;
+	int smx = 0;
 
 	// Player states
 	COORD2 m_cPos;
@@ -51,7 +55,20 @@ private:
 	bool m_bSliding;
 	bool m_bAlive;
 	bool m_bInWeb;
+	bool m_bTeleporting;
 	short m_sDepth;
+
+	void DrawStringFont(int x, int y, const wstring& chars)
+	{
+		for (wchar_t c : chars)
+		{
+			if (c - ' ' >= spriteFONT.GetTileCount())
+				continue;
+
+			DrawSprite(x, y, spriteFONT[c - ' ']);
+			x += spriteFONT.GetTileWidth();
+		}
+	}
 
 	void ModuleToBoard(int x, int y, TILE t)
 	{
@@ -157,7 +174,7 @@ private:
 		m_sDepth -= dy;
 
 		for (int i = 0; i < abs(dy); i++)
-			ShiftBoard(dy < 0 ? NORTH : SOUTH);
+			ShiftBoard(dy < 0 ? NORTH : SOUTH, false);
 	}
 
 	void UpdateWeb(DIRECTION d) 
@@ -196,14 +213,14 @@ private:
 		else if (m_cPos.col + dp.col > m_xBoard.cols() - 1) return;
 
 		if (OnPlayerStep(dp))
-			ShiftBoard(d);
-		//UpdateScreen();
+			ShiftBoard(d, true);
 	}
 	bool OnPlayerStep(COORD2 dp)
 	{
 		TILE nextTile = m_xBoard(m_cPos + dp);
 		m_bSliding = false;
 		m_bInWeb = false;
+		m_bTeleporting = false;
 		switch (nextTile.type)
 		{
 		case WALL:
@@ -231,6 +248,7 @@ private:
 		case PORTAL_START_RED:
 		case PORTAL_START_GREEN:
 			TeleportUsingState(m_cPos + dp);
+			m_bTeleporting = true;
 			return true;
 			break;
 
@@ -271,8 +289,22 @@ private:
 
 		return true;
 	}
-	void ShiftBoard(DIRECTION d)
+	void ShiftBoard(DIRECTION d, bool smooth)
 	{
+		//shift the screen output 1/8th 8 times
+		if (smooth && m_bTeleporting == false)
+		{
+			if (d == SOUTH)
+				smy = 8;
+			else if (d == NORTH)
+				smy = -8;
+			else if (d == EAST)
+				smx = -8;
+			else if (d == WEST)
+				smx = 8;
+		}
+
+		//shift the tile data up or down
 		switch (d)
 		{
 			// Shift board down (player goes north)
@@ -330,49 +362,49 @@ private:
 				// [r,c] becomes [c,r]
 				switch (m_xBoard(r + m_sBufOffset.second, c).type)
 				{
-				case EMPTY:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteEMPTY);	break;	   
-				case HERO:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteHERO);	break;
-				case STONE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteSTONE);	break;
-				case WALL:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWALL);	break;
-				case ICE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteICE);	break;	   
-				case FIRE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteFIRE);	break;
-				case WOOD:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWOOD);	break;
-				case WEB:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWEB);	break;
-				case PORTAL_START_BLUE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spritePORTAL_START_BLUE);	break;
-				case PORTAL_END_BLUE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spritePORTAL_END_BLUE);	break;
-				case PORTAL_START_RED:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spritePORTAL_START_RED);	break;
-				case PORTAL_END_RED:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spritePORTAL_END_RED);		break;
-				case PORTAL_START_GREEN:DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spritePORTAL_START_GREEN);	break;
-				case PORTAL_END_GREEN:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spritePORTAL_END_GREEN);	break;
+				case EMPTY:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteEMPTY);	break;	   
+				case HERO:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteHERO);	break;
+				case STONE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteSTONE);	break;
+				case WALL:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteWALL);	break;
+				case ICE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteICE);	break;	   
+				case FIRE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteFIRE);	break;
+				case WOOD:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteWOOD);	break;
+				case WEB:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteWEB);	break;
+				case PORTAL_START_BLUE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePORTAL_START_BLUE);	break;
+				case PORTAL_END_BLUE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePORTAL_END_BLUE);	break;
+				case PORTAL_START_RED:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePORTAL_START_RED);	break;
+				case PORTAL_END_RED:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePORTAL_END_RED);	break;
+				case PORTAL_START_GREEN:DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePORTAL_START_GREEN);break;
+				case PORTAL_END_GREEN:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePORTAL_END_GREEN);	break;
 
 				case WEAKSTONE:
 					if (m_xBoard(r + m_sBufOffset.second, c).e_state > 0)
 					{
 						COORD2 cell(r + m_sBufOffset.second, c);
-						if (ticks % 5 == 0)
+						if (ticks % 20 == 0)
 							UpdateWeak(cell);
 					}
-					DrawPartialSprite(c * TILE_SIZE, r * TILE_SIZE, spriteWEAK, m_xBoard(r + m_sBufOffset.second, c).e_state * 8, 0, 8, 8);
+					DrawPartialSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteWEAK, m_xBoard(r + m_sBufOffset.second, c).e_state * 8, 0, 8, 8);
 					break;
 
 				case POT_ICE:
-					DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteICE);
-					DrawPartialSprite(c * TILE_SIZE, r * TILE_SIZE, spritePOTS, m_xBoard(r + m_sBufOffset.second, c).e_state * 8, 0, 8, 8);
+					DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteICE);
+					DrawPartialSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePOTS, m_xBoard(r + m_sBufOffset.second, c).e_state * 8, 0, 8, 8);
 					break;
 
 				case POT_STONE:
-					DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteSTONE);
-					DrawPartialSprite(c * TILE_SIZE, r * TILE_SIZE, spritePOTS, m_xBoard(r + m_sBufOffset.second, c).e_state * 8, 0, 8, 8);
+					DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteSTONE);
+					DrawPartialSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePOTS, m_xBoard(r + m_sBufOffset.second, c).e_state * 8, 0, 8, 8);
 					break;
 
 				default:	   
-					DrawSprite(c * TILE_SIZE, r * TILE_SIZE, spriteEMPTY);
+					DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteEMPTY);
 					break;
 				}
 			}
 		}
 
-		DrawSprite(m_cPos.col * TILE_SIZE, (m_cPos.row - m_sBufOffset.second) * TILE_SIZE, spriteHERO);
+		DrawSprite(m_cPos.col * TILE_SIZE + smx, (m_cPos.row - m_sBufOffset.second) * TILE_SIZE, spriteHERO);
 	}
 
 	void OnReset()
@@ -388,6 +420,7 @@ private:
 		m_bSliding = false;
 		m_bInWeb = false;
 		m_bAlive = true;
+		m_bTeleporting = false;
 		m_sDepth = 0;
 
 		//Make everything empty
@@ -412,23 +445,38 @@ private:
 protected:
 	virtual bool OnUserCreate() 
 	{
+		spriteFONT.Load(L"sprites/javidx9_nesfont8x8.spr", 8, 8);
 		OnReset();	
 		return true;
 	}
 	virtual bool OnUserUpdate(float fElapsedTime)
 	{	
-		fAcc += fElapsedTime;
-		if (fAcc > 0.05)
-		{
-			fAcc = 0;
-			ticks++;
-			UpdateScreen();
-			DrawString(0, 0, to_wstring(ticks));
-		}
-
 		//Skip frame is window is unactive
 		if (GetConsoleWindow() != GetForegroundWindow())
 			return true;
+
+		fAcc += fElapsedTime;
+		if (fAcc >= 0.008)
+		{
+			fAcc -= 0.008f;
+			ticks++;
+
+			if (smy > 0)
+				smy--;
+			else if (smy < 0)
+				smy++;
+			else if (smx < 0)
+				smx++;
+			else if (smx > 0)
+				smx--;
+
+			UpdateScreen();
+			//DrawStringFont(0, 0, to_wstring(ticks));
+		}
+
+		//Skip if moving
+		if (smy != 0 || smx != 0)
+			return true;		
 
 		if (!m_bAlive)
 		{
@@ -456,6 +504,9 @@ protected:
 
 		return true;
 	}
+
+public:
+
 };
 
 int main()
