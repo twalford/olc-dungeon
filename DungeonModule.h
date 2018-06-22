@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include <string>
-#include "GameTypes.h";
+#include "GameTypes.h"
 
 class DungeonModule
 {
@@ -28,38 +28,57 @@ public:
 
 private:
 	
-	ENTITY *tempTiles = nullptr;
-	ENTITY *m_Tiles = nullptr;
+	TILE *tempTiles = nullptr;
+	TILE *m_Tiles = nullptr;
 
 	void Create(short w, short h)
 	{
 		width = w;
 		height = h;
-		m_Tiles = new ENTITY[w*h];
+		m_Tiles = new TILE[w*h];
 		for (int i = 0; i < w*h; i++)
-			m_Tiles[i] = EMPTY;
+		{
+			m_Tiles[i].type = EMPTY;
+			m_Tiles[i].e_state = 0;
+		}
 	}
 
 	void CreateTemp(short w, short h)
 	{
-		tempTiles = new ENTITY[w*h];
+		tempTiles = new TILE[w*h];
 		for (int i = 0; i < w*h; i++)
-			tempTiles[i] = EMPTY;
+		{
+			tempTiles[i].type = EMPTY;
+			m_Tiles[i].e_state = 0;
+		}
 	}
 
 public:
-	void SetTile(short x, short y, ENTITY t)
+	void SetEntity(short x, short y, ENTITY t)
 	{
 		if (x < 0 || x >= width || y < 0 || y >= height)
 			return;
 		else
-			m_Tiles[y * width + x] = t;
+			m_Tiles[y * width + x].type = t;
 	}
 
-	ENTITY GetTile(short x, short y)
+	ENTITY GetEntity(short x, short y)
 	{
 		if (x < 0 || x >= width || y < 0 || y >= height)
 			return EMPTY;
+		else
+			return m_Tiles[y * width + x].type;
+	}
+
+	TILE GetTile(short x, short y)
+	{
+		if (x < 0 || x >= width || y < 0 || y >= height)
+		{
+			TILE t;
+			t.type = EMPTY;
+			t.e_state = 0;
+			return t;
+		}
 		else
 			return m_Tiles[y * width + x];
 	}
@@ -77,7 +96,8 @@ public:
 		fwrite(&ver, sizeof(short), 1, f);		//VERSION
 		fwrite(&width, sizeof(short), 1, f);	//WIDTH
 		fwrite(&height, sizeof(short), 1, f);	//HEIGHT
-		fwrite(m_Tiles, sizeof(int), width * height, f); //TILES
+		for (int i = 0; i < width*height; i++)  //TILES.TYPE
+			fwrite(&m_Tiles[i].type, sizeof(int), 1, f); 
 
 		fclose(f);
 		return true;
@@ -101,7 +121,8 @@ public:
 		fread(&height, sizeof(short), 1, f);	//HEIGHT
 
 		Create(width, height);
-		fread(m_Tiles, sizeof(int), width * height, f); //TILES
+		for (int i = 0; i < width*height; i++)  //TILES.TYPE
+			fread(&m_Tiles[i].type, sizeof(int), 1, f);
 
 		fclose(f);
 		return true;
