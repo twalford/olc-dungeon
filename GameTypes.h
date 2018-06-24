@@ -1,5 +1,5 @@
 #pragma once
-#include "TArray.h";
+#include "TArray.h"
 
 enum orientations { VERTICAL = 0, HORIZONTAL };
 typedef orientations ORIENTATION;

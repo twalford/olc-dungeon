@@ -18,36 +18,43 @@ private:
 	GAMEBOARD m_xBoard;
 	SpriteSheet spriteFONT;
 
-	olcSprite *spriteHERO	= new olcSprite(L"sprites/dungeon_hero.spr");
-	olcSprite *spriteSTONE  = new olcSprite(L"sprites/dungeon_stone.spr");
-	olcSprite *spriteWALL	= new olcSprite(L"sprites/dungeon_wall.spr");
-	olcSprite *spriteICE	= new olcSprite(L"sprites/dungeon_ice.spr");
-	olcSprite *spriteFIRE	= new olcSprite(L"sprites/dungeon_fire.spr");
-	olcSprite *spriteEMPTY	= new olcSprite(L"sprites/dungeon_empty.spr");
-	olcSprite *spriteWOOD	= new olcSprite(L"sprites/dungeon_wood.spr");
-	olcSprite *spriteWEB	= new olcSprite(L"sprites/dungeon_web.spr");
-	olcSprite *spriteWEAK	= new olcSprite(L"sprites/dungeon_weakstone.spr");
-	olcSprite *spritePOTS	= new olcSprite(L"sprites/dungeon_pot.spr");
-	olcSprite *spritePORTAL_START_BLUE	= new olcSprite(L"sprites/dungeon_portal_start_blue.spr");
-	olcSprite *spritePORTAL_END_BLUE	= new olcSprite(L"sprites/dungeon_portal_end_blue.spr");
-	olcSprite *spritePORTAL_START_RED	= new olcSprite(L"sprites/dungeon_portal_start_red.spr");
-	olcSprite *spritePORTAL_END_RED		= new olcSprite(L"sprites/dungeon_portal_end_red.spr");
-	olcSprite *spritePORTAL_START_GREEN = new olcSprite(L"sprites/dungeon_portal_start_green.spr");
-	olcSprite *spritePORTAL_END_GREEN = new olcSprite(L"sprites/dungeon_portal_end_green.spr");
+	olcSprite *sprites[16] =
+	{
+		new olcSprite(L"sprites/dungeon_empty.spr"),
+		new olcSprite(L"sprites/dungeon_stone.spr"),
+		new olcSprite(L"sprites/dungeon_wall.spr"),
+		new olcSprite(L"sprites/dungeon_ice.spr"),
+		new olcSprite(L"sprites/dungeon_fire.spr"),
+		new olcSprite(L"sprites/dungeon_hero.spr"),
+		new olcSprite(L"sprites/dungeon_wood.spr"),
+		new olcSprite(L"sprites/dungeon_web.spr"),
+		new olcSprite(L"sprites/dungeon_weakstone.spr"),
+		new olcSprite(L"sprites/dungeon_portal_start_blue.spr"),
+		new olcSprite(L"sprites/dungeon_portal_end_blue.spr"),
+		new olcSprite(L"sprites/dungeon_portal_start_red.spr"),
+		new olcSprite(L"sprites/dungeon_portal_end_red.spr"),
+		new olcSprite(L"sprites/dungeon_portal_start_green.spr"),
+		new olcSprite(L"sprites/dungeon_portal_end_green.spr"),
+		new olcSprite(L"sprites/dungeon_pot.spr")
+	};
 
 	DungeonModule *dmSTARTING	= new DungeonModule(L"modules/dm_starting.dumo");
 	DungeonModule *dmTESTING	= new DungeonModule(L"modules/dm_testing.dumo");
 	DungeonModule *dmLOOPS		= new DungeonModule(L"modules/dm_loops.dumo");
 
-	const short PLAYER_ROW_CONST = 28;
-	const short TILE_SIZE = 8;
-	pair<short, short> m_sBufOffset;
-
-	float fAcc = 0.0f;
-	float fet = 0.0f;
-	int ticks = 0;
-	int smy = 0;
-	int smx = 0;
+	const short CONST_PLAYER_ROW = 29;
+	const short CONST_SCREEN_TILE_OFFSET = 19;
+	const short CONST_TILE_SIZE = 8;
+	const short CONST_IDLE_THRESHOLD = 500;
+	const short CONST_DOOM_START_POS = 4;
+	const short CONST_DOOM_CREEP_SPEED = 60;
+	float fAcc;
+	float fet;
+	int ticks;
+	int smy;
+	int smx;
+	int doomCreepPos;
+	int idleTimer;
 
 	// Player states
 	COORD2 m_cPos;
@@ -57,6 +64,7 @@ private:
 	bool m_bInWeb;
 	bool m_bTeleporting;
 	short m_sDepth;
+	short m_sCoins;
 
 	void DrawStringFont(int x, int y, const wstring& chars)
 	{
@@ -173,6 +181,11 @@ private:
 		m_cPos.col = c.col + dx;
 		m_sDepth -= dy;
 
+		// If teleporting forward.. the idletime should subtract
+		// travel distance * CREEP_SPEED but not go into negatives.
+		if (dy < 0) idleTimer = max(idleTimer + (dy * CONST_DOOM_CREEP_SPEED), 0); //dy negative, so we add
+		doomCreepPos = max(doomCreepPos + dy, 0);
+
 		for (int i = 0; i < abs(dy); i++)
 			ShiftBoard(dy < 0 ? NORTH : SOUTH, false);
 	}
@@ -279,13 +292,19 @@ private:
 			break;
 		}
 
-		// Update the position
-		COORD2 newPos = m_cPos + dp;
-		// Update the depth
+		// Update the depth and column postition
 		m_sDepth -= dp.row;
-		//Payers row position should never change.
-		newPos.row = PLAYER_ROW_CONST;
-		m_cPos = newPos;
+		m_cPos.col += dp.col;
+
+		// Update the depth of creeping doom
+		if (dp.row == -1)
+		{
+			idleTimer = max(min(idleTimer - 100,400),0);
+			if (doomCreepPos > 0)
+				doomCreepPos--;
+		}
+		else if (dp.row == 1)
+			doomCreepPos++;
 
 		return true;
 	}
@@ -340,7 +359,7 @@ private:
 					}
 					else
 					{
-						m_xBoard(r, c).type = EMPTY;
+						m_xBoard(r, c).type = FIRE;
 						m_xBoard(r, c).e_state = 0;
 					}
 				}
@@ -353,68 +372,70 @@ private:
 	}
 	void UpdateScreen()
 	{
-		for (int r = 0; r < m_xBoard.rows() - m_sBufOffset.second; r++)
+		for (int r = 0; r < m_xBoard.rows() - CONST_SCREEN_TILE_OFFSET; r++)
 		{
 			for (int c = 0; c < m_xBoard.cols(); c++)
 			{
 				// The TArray implementation is diagonally flipped,
 				// so account for it when converting to OLC buffer.
 				// [r,c] becomes [c,r]
-				switch (m_xBoard(r + m_sBufOffset.second, c).type)
+				switch (m_xBoard(r + CONST_SCREEN_TILE_OFFSET, c).type)
 				{
-				case EMPTY:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteEMPTY);	break;	   
-				case HERO:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteHERO);	break;
-				case STONE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteSTONE);	break;
-				case WALL:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteWALL);	break;
-				case ICE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteICE);	break;	   
-				case FIRE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteFIRE);	break;
-				case WOOD:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteWOOD);	break;
-				case WEB:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteWEB);	break;
-				case PORTAL_START_BLUE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePORTAL_START_BLUE);	break;
-				case PORTAL_END_BLUE:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePORTAL_END_BLUE);	break;
-				case PORTAL_START_RED:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePORTAL_START_RED);	break;
-				case PORTAL_END_RED:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePORTAL_END_RED);	break;
-				case PORTAL_START_GREEN:DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePORTAL_START_GREEN);break;
-				case PORTAL_END_GREEN:	DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePORTAL_END_GREEN);	break;
-
 				case WEAKSTONE:
-					if (m_xBoard(r + m_sBufOffset.second, c).e_state > 0)
+					if (m_xBoard(r + CONST_SCREEN_TILE_OFFSET, c).e_state > 0)
 					{
-						COORD2 cell(r + m_sBufOffset.second, c);
+						COORD2 cell(r + CONST_SCREEN_TILE_OFFSET, c);
 						if (ticks % 20 == 0)
 							UpdateWeak(cell);
 					}
-					DrawPartialSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteWEAK, m_xBoard(r + m_sBufOffset.second, c).e_state * 8, 0, 8, 8);
+					DrawPartialSprite(c * CONST_TILE_SIZE, r * CONST_TILE_SIZE + smy, 
+						sprites[WEAKSTONE], m_xBoard(r + CONST_SCREEN_TILE_OFFSET, c).e_state * 8, 0, 8, 8);
 					break;
 
 				case POT_ICE:
-					DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteICE);
-					DrawPartialSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePOTS, m_xBoard(r + m_sBufOffset.second, c).e_state * 8, 0, 8, 8);
+					DrawSprite(c * CONST_TILE_SIZE, r * CONST_TILE_SIZE + smy, sprites[3]);
+					DrawPartialSprite(c * CONST_TILE_SIZE, r * CONST_TILE_SIZE + smy, 
+						sprites[15], m_xBoard(r + CONST_SCREEN_TILE_OFFSET, c).e_state * 8, 0, 8, 8);
 					break;
 
 				case POT_STONE:
-					DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteSTONE);
-					DrawPartialSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spritePOTS, m_xBoard(r + m_sBufOffset.second, c).e_state * 8, 0, 8, 8);
+					DrawSprite(c * CONST_TILE_SIZE, r * CONST_TILE_SIZE + smy, sprites[1]);
+					DrawPartialSprite(c * CONST_TILE_SIZE, r * CONST_TILE_SIZE + smy, 
+						sprites[15], m_xBoard(r + CONST_SCREEN_TILE_OFFSET, c).e_state * 8, 0, 8, 8);
 					break;
 
-				default:	   
-					DrawSprite(c * TILE_SIZE, r * TILE_SIZE + smy, spriteEMPTY);
+				default:	
+					// everything else
+					DrawSprite(c * CONST_TILE_SIZE, r * CONST_TILE_SIZE + smy,
+						sprites[m_xBoard(r + CONST_SCREEN_TILE_OFFSET, c).type]);
 					break;
 				}
 			}
 		}
 
-		DrawSprite(m_cPos.col * TILE_SIZE + smx, (m_cPos.row - m_sBufOffset.second) * TILE_SIZE, spriteHERO);
+		// Draw the hero
+		DrawSprite(m_cPos.col * CONST_TILE_SIZE + smx, (m_cPos.row - CONST_SCREEN_TILE_OFFSET) * CONST_TILE_SIZE, sprites[5]);
+
+		// Stats
+		Fill(120, 0, ScreenWidth(), ScreenHeight(), PIXEL_SOLID, FG_BLACK);
+		DrawStringFont(120, 0,  L"TICKS " + to_wstring(ticks));
+		DrawStringFont(120, 8,  L"IDLE  " + to_wstring(idleTimer));
+		DrawStringFont(120, 16, L"DOOM  " + to_wstring(doomCreepPos));
+	}
+	void UpdateDoomCreep()
+	{
+		//for (int r = m_xBoard.rows() - 1; r >= m_xBoard.rows() - 1 - doomCreepPos; r--)
+		int r = m_xBoard.rows() - doomCreepPos;
+			for (int c = m_xBoard.cols() - 1; c >= 0; c--)
+				m_xBoard(r, c).type = FIRE;
 	}
 
 	void OnReset()
 	{
+		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_SOLID, FG_BLACK);
 		m_xBoard.resize(40, 15); // (Height, Width)
 
-		m_sBufOffset.first = 0;
-		m_sBufOffset.second = 18;
-
-		m_cPos.row = 28;
+		m_cPos.row = CONST_PLAYER_ROW;
 		m_cPos.col = 7;
 		m_dLastDirection = NORTH;
 		m_bSliding = false;
@@ -422,15 +443,28 @@ private:
 		m_bAlive = true;
 		m_bTeleporting = false;
 		m_sDepth = 0;
+		m_sCoins = 0;
+
+		fAcc = 0.0f;
+		fet = 0.0f;
+		ticks = 0;
+		smy = 0;
+		smx = 0;
+		doomCreepPos = CONST_DOOM_START_POS;
+		idleTimer = 0;
 
 		//Make everything empty
-		for (int i = 15; i < m_xBoard.rows(); i++)
+		for (int i = 0; i < m_xBoard.rows(); i++)
 			for (int j = 0; j < m_xBoard.cols(); j++)
 				m_xBoard(i, j).type = EMPTY;
 
-		DrawModule(27, 6, dmSTARTING);
-		DrawModule(18, 3, dmTESTING);
-		DrawModule(11, 4, dmLOOPS);
+		for (int i = m_xBoard.rows() - 1; i >= m_xBoard.rows() - CONST_DOOM_START_POS; i--)
+			for (int j = 0; j < m_xBoard.cols(); j++)
+				m_xBoard(i, j).type = FIRE;
+
+		DrawModule(28, 6, dmSTARTING);
+		DrawModule(19, 3, dmTESTING);
+		DrawModule(12, 4, dmLOOPS);
 
 		m_xBoard(0, 0).type = ICE;
 		m_xBoard(0, 0).e_state = 2;
@@ -439,6 +473,8 @@ private:
 	void OnDeath() 
 	{
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_HALF, FG_RED);
+		DrawStringFont(120, 28, L"DEPTH " + to_wstring(m_sDepth));
+		DrawStringFont(120, 36, L"COINS " + to_wstring(m_sCoins));
 		if (m_keys[VK_SPACE].bPressed) OnReset();
 	}
 
@@ -460,6 +496,7 @@ protected:
 		{
 			fAcc -= 0.008f;
 			ticks++;
+			idleTimer++;
 
 			if (smy > 0)
 				smy--;
@@ -470,8 +507,13 @@ protected:
 			else if (smx > 0)
 				smx--;
 
+			if (idleTimer >= CONST_IDLE_THRESHOLD && (idleTimer - 100) % 200 == 0)
+			{
+				doomCreepPos++;
+				UpdateDoomCreep();
+			}
+
 			UpdateScreen();
-			//DrawStringFont(0, 0, to_wstring(ticks));
 		}
 
 		//Skip if moving
@@ -512,7 +554,7 @@ public:
 int main()
 {
 	Dungeon dungeonGame;
-	dungeonGame.ConstructConsole(120, 120, 5, 5); //change first param for width
+	dungeonGame.ConstructConsole(200, 136, 4, 4); //change first param for width
 	dungeonGame.Start();
 	return 0;
 }
@@ -520,7 +562,6 @@ int main()
 /* TODO **********************/
 /*
 - Add more ENTITY.
-- Figure out how display font larger than a tile.
 - Show stats on right side of screen
 
 - Make a main menu
