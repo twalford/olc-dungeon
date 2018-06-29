@@ -21,6 +21,7 @@ private:
 	int nZoom = 8;
 	int nBrushSet = 1;
 	bool bCropMode = false;
+	bool bStartEndMode = false;
 	ORIENTATION oCropOrientation = VERTICAL;
 	DIRECTION dInsertDirHori = SOUTH;
 	DIRECTION dInsertDirVert = EAST;
@@ -57,7 +58,7 @@ protected:
 	virtual bool OnUserCreate()
 	{
 		dm = new DungeonModule(5, 5);
-		sCurrentModuleFile = L"../OLCdungeon/modules/dm_testing.dumo";
+		sCurrentModuleFile = L"../OLCdungeon/modules/dm_loops.dumo";
 
 		return true;
 	}
@@ -67,9 +68,18 @@ protected:
 		if (GetConsoleWindow() != GetForegroundWindow())
 			return true;
 
-		// CropMode Selector
+		// Mode Selector
 		if (m_keys['C'].bReleased)
+		{
 			bCropMode = !bCropMode;
+			bStartEndMode = false;
+		}
+		
+		if (m_keys['S'].bReleased) 
+		{
+			bStartEndMode = !bStartEndMode;
+			bCropMode = false;
+		}
 
 		// Zooming 
 		if (m_keys[VK_PRIOR].bReleased)
@@ -159,12 +169,13 @@ protected:
 
 		if (dm != nullptr)
 		{
+			if (nPosX < 0) nPosX = 0;
+			if (nPosX >= dm->width) nPosX = dm->width - 1;
+			if (nPosY < 0) nPosY = 0;
+			if (nPosY >= dm->height) nPosY = dm->height - 1;
+
 			if (bCropMode) // Crop Mode
 			{
-				if (nPosX < 0) nPosX = 0;
-				if (nPosX >= dm->width) nPosX = dm->width - 1;
-				if (nPosY < 0) nPosY = 0;
-				if (nPosY >= dm->height) nPosY = dm->height - 1;
 
 				if (m_keys[VK_DELETE].bReleased)
 					dm->CropRowOrCol(nPosX, nPosY, oCropOrientation);
@@ -183,23 +194,69 @@ protected:
 				if (m_keys['V'].bReleased)
 					oCropOrientation = (ORIENTATION)((oCropOrientation + 1) % 2);
 			}
-			else //Edit Mode
+			else if (bStartEndMode) // Start/End Mode
 			{
-				if (nPosX < 0) nPosX = 0;
-				if (nPosX >= dm->width) nPosX = dm->width - 1;
-				if (nPosY < 0) nPosY = 0;
-				if (nPosY >= dm->height) nPosY = dm->height - 1;
-
 				if (m_keys[VK_SPACE].bReleased)
 				{
-					dm->SetEntity(nPosX - 0, nPosY - 0, eCurrentENTITY);
+					ENTITY e = dm->GetEntity(nPosX, nPosY);
+					if (e == STONE || e == ICE || e == WOOD)
+					{
+						if (nPosY == dm->height - 1) //placing start
+						{
+							dm->startCol = nPosX;
+							dm->startAmt = 1;
+						}
+						else if (nPosY == 0) //placing end
+						{
+							dm->endCol = nPosX;
+							dm->endAmt = 1;
+						}
+					}
 				}
 
 				if (m_keys[VK_DELETE].bReleased)
 				{
-					dm->SetEntity(nPosX - 0, nPosY - 0, EMPTY);
+					if (nPosY == dm->height - 1) //start
+					{
+						if (dm->startAmt > 1)
+							dm->startAmt--;
+					}
+					else if (nPosY == 0) //end
+					{
+						if (dm->endAmt > 1)
+							dm->endAmt--;
+					}
 				}
 
+				if (m_keys[VK_INSERT].bReleased)
+				{
+					ENTITY e;
+					if (nPosY == dm->height - 1) // start
+					{
+						e = dm->GetEntity(dm->startCol + dm->startAmt, nPosY);
+						if (e == STONE || e == ICE || e == WOOD)
+						{
+							dm->startAmt++;
+						}
+					}
+					else if (nPosY == 0) // end
+					{
+						e = dm->GetEntity(dm->endCol + dm->endAmt, nPosY);
+						if (e == STONE || e == ICE || e == WOOD)
+						{
+							dm->endAmt++;
+						}
+					}
+				}
+
+			}
+			else //Edit Mode
+			{
+				if (m_keys[VK_SPACE].bReleased)
+					dm->SetEntity(nPosX, nPosY, eCurrentENTITY);
+
+				if (m_keys[VK_DELETE].bReleased)
+					dm->SetEntity(nPosX, nPosY, EMPTY);
 			}
 
 			if (m_keys[VK_F9].bReleased)
@@ -249,6 +306,7 @@ protected:
 			int nVisiblePixelsY = 64 / nZoom;
 
 			for (int x = 0; x < nVisiblePixelsX; x++)
+			{
 				for (int y = 0; y < nVisiblePixelsY; y++)
 				{
 					if (x - nOffsetX < dm->width && y - nOffsetY < dm->height && x - nOffsetX >= 0 && y - nOffsetY >= 0)
@@ -309,12 +367,12 @@ protected:
 							DrawPartialSprite(x * nZoom + 11,
 								y * nZoom + 10,
 								mySprites[dm->GetEntity(x - nOffsetX, y - nOffsetY)],
-								0,0,8,8);
+								0, 0, 8, 8);
 						}
 
 						// Draw Pixel Markers
 						if (dm->GetEntity(x - nOffsetX, y - nOffsetY) == EMPTY)
-							Draw((x) * nZoom + 11, (y) * nZoom + 10, L'.');
+							Draw((x)* nZoom + 11, (y)* nZoom + 10, L'.');
 
 						// Draw Crop Markers
 						if (bCropMode)
@@ -323,24 +381,45 @@ protected:
 							{
 								if (x == nPosX)
 									DrawSprite((x)* nZoom + 11, (y)* nZoom + 10, cropSprites[dInsertDirVert]);
-									//DrawPartialSprite((x)* nZoom + 11, (y)* nZoom + 10, cropSprites[dInsertDirVert], 0, 0, 8, 8);
 							}
 							else if (oCropOrientation == HORIZONTAL)
 							{
 								if (y == nPosY)
 									DrawSprite((x)* nZoom + 11, (y)* nZoom + 10, cropSprites[dInsertDirHori]);
-									//DrawPartialSprite((x)* nZoom + 11, (y)* nZoom + 10, cropSprites[dInsertDirHori], 0, 0, 8, 8);
-									
 							}
+						}
+
+						// Draw Start/End markers
+						else if (bStartEndMode)
+						{
+							if (x == nPosX && y == nPosY)
+								DrawSprite((x)* nZoom + 11, (y)* nZoom + 10, cropSprites[dInsertDirVert]);
 						}
 
 					}
 					if (x - nOffsetX == nPosX && y - nOffsetY == nPosY)
 						Draw((x)* nZoom + 11, (y)* nZoom + 10, L'O');
-					
-				}
-		}
 
+				}
+			}
+
+			// start/end markers
+			if (bStartEndMode)
+			{
+				if (dm->startCol != -1)
+					Fill(dm->startCol * nZoom + 13, (dm->height - 1) * nZoom + 12, dm->startCol * nZoom + 13 + 4, (dm->height - 1) * nZoom + 12 + 4, PIXEL_HALF, FG_CYAN);
+				if (dm->endCol != -1)
+					Fill(dm->endCol * nZoom + 13, 0 * nZoom + 12, dm->endCol * nZoom + 13 + 4, 0 * nZoom + 12 + 4, PIXEL_HALF, FG_CYAN);
+
+				for (int c = dm->startCol + 1; c < dm->startCol + dm->startAmt; c++)
+				{
+					int r = dm->height - 1;
+					Fill(c * nZoom + 13, r * nZoom + 12, c * nZoom + 13 + 4, r * nZoom + 12 + 4, PIXEL_QUARTER, FG_DARK_CYAN);
+				}
+				for (int c = dm->endCol + 1; c < dm->endCol + dm->endAmt; c++)
+					Fill(c * nZoom + 13, 0 * nZoom + 12, c * nZoom + 13 + 4, 0 * nZoom + 12 + 4, PIXEL_QUARTER, FG_DARK_CYAN);
+			}
+		}
 
 		return true;
 	}
