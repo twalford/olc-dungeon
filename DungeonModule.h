@@ -25,6 +25,10 @@ public:
 
 	short width = 0;
 	short height = 0;
+	short startCol = -1;
+	short startAmt = 0;
+	short endCol = -1;
+	short endAmt = 0;
 
 private:
 	
@@ -41,6 +45,10 @@ private:
 			m_Tiles[i].type = EMPTY;
 			m_Tiles[i].e_state = 0;
 		}
+		startCol = -1;
+		startAmt = 0;
+		endCol = -1;
+		endAmt = 0;
 	}
 
 	void CreateTemp(short w, short h)
@@ -49,7 +57,7 @@ private:
 		for (int i = 0; i < w*h; i++)
 		{
 			tempTiles[i].type = EMPTY;
-			m_Tiles[i].e_state = 0;
+			tempTiles[i].e_state = 0;
 		}
 	}
 
@@ -85,7 +93,7 @@ public:
 
 	bool Save(wstring sFile)
 	{
-		short ver = 2;
+		short ver = 3;
 
 		FILE *f = nullptr;
 		_wfopen_s(&f, sFile.c_str(), L"wb");
@@ -96,6 +104,11 @@ public:
 		fwrite(&ver, sizeof(short), 1, f);		//VERSION
 		fwrite(&width, sizeof(short), 1, f);	//WIDTH
 		fwrite(&height, sizeof(short), 1, f);	//HEIGHT
+		fwrite(&startCol, sizeof(short), 1, f);	//START TILE COL
+		fwrite(&startAmt, sizeof(short), 1, f);	//NUMDER OF START TILES
+		fwrite(&endCol, sizeof(short), 1, f);	//END TILE COL
+		fwrite(&endAmt, sizeof(short), 1, f);	//NUMDER OF END TILES
+
 		for (int i = 0; i < width*height; i++)  //TILES.TYPE
 			fwrite(&m_Tiles[i].type, sizeof(int), 1, f); 
 
@@ -105,10 +118,10 @@ public:
 
 	bool Load(wstring sFile)
 	{
-		char fileType[5];
+		char fileType[4];
 		short ver = 0;
-		width = 0;
-		height = 0;
+		short sC = -1, sA = 0, eC = -1, eA = 0;
+
 
 		FILE *f = nullptr;
 		_wfopen_s(&f, sFile.c_str(), L"rb");
@@ -116,13 +129,27 @@ public:
 			return false;
 
 		fread(fileType, sizeof(char), 4, f);	//FILETYPE
-		fread(&ver, sizeof(short), 1, f);		//VERSION
-		fread(&width, sizeof(short), 1, f);		//WIDTH
-		fread(&height, sizeof(short), 1, f);	//HEIGHT
+		if (fileType[0] == "DuMo"[0])
+		{
+			fread(&ver, sizeof(short), 1, f);		//VERSION
+			fread(&width, sizeof(short), 1, f);		//WIDTH
+			fread(&height, sizeof(short), 1, f);	//HEIGHT
+			if (ver == 3)
+			{
+				fread(&sC, sizeof(short), 1, f);	//START TILE COL
+				fread(&sA, sizeof(short), 1, f);	//NUMDER OF START TILES
+				fread(&eC, sizeof(short), 1, f);	//END TILE COL
+				fread(&eA, sizeof(short), 1, f);	//NUMDER OF END TILES
+			}
+			Create(width, height);
+			for (int i = 0; i < width*height; i++)  //TILES.TYPE
+				fread(&m_Tiles[i].type, sizeof(int), 1, f);
+		}
 
-		Create(width, height);
-		for (int i = 0; i < width*height; i++)  //TILES.TYPE
-			fread(&m_Tiles[i].type, sizeof(int), 1, f);
+		startCol = sC;
+		startAmt = sA;
+		endCol = eC;
+		endAmt = eA;
 
 		fclose(f);
 		return true;

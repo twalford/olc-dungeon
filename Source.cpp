@@ -4,7 +4,7 @@
 #include "GameTypes.h"
 #include "DungeonModule.h"
 #include "SpriteSheet.h"
-#include "Player.h"
+#include "PlayerState.h"
 #include "Util.h"
 
 class Dungeon : public olcConsoleGameEngine
@@ -44,17 +44,18 @@ private:
 	DungeonModule *dmTESTING	= new DungeonModule(L"modules/dm_testing.dumo");
 	DungeonModule *dmLOOPS		= new DungeonModule(L"modules/dm_loops.dumo");
 
+	COORD2 pathEnd; 
 	const short CONST_PLAYER_ROW = 29;
 	const short CONST_SCREEN_TILE_OFFSET = 19;
 	const short CONST_TILE_SIZE = 8;
-	const short CONST_DOOM_START_POS = 1;
+	const short CONST_DOOM_START_POS = 0;
 	const short CONST_DOOM_CREEP_SPEED = 250;
 	float fAcc;
-	float fet;
 	int ticks;
 	int smy;
 	int smx;
 	int doomCreepPos;
+
 
 	void DrawStringFont(int x, int y, const wstring& chars)
 	{
@@ -312,6 +313,8 @@ private:
 				}
 			}
 			break;
+
+			// TODO PATH END CHECKING //////////
 			
 			// Shift board up (player goes south)
 		case SOUTH:
@@ -397,19 +400,31 @@ private:
 				m_xBoard(r, c).type = FIRE;
 	}
 
-	void OnReset()
+	COORD2 PathVarient_doubleIceLoop(COORD2 p)
 	{
-		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_SOLID, FG_BLACK);
-		m_xBoard.resize(40, 15); // (Height, Width)
+		COORD2 cnr;
+		cnr.row = p.row - dmLOOPS->height;
+		cnr.col = p.col - dmLOOPS->startCol;
 
-		player = new PlayerState(CONST_PLAYER_ROW, 7);
+		DrawModule(cnr.row, cnr.col, dmLOOPS);
 
-		fAcc = 0.0f;
-		fet = 0.0f;
-		ticks = 0;
-		smy = 0;
-		smx = 0;
-		doomCreepPos = CONST_DOOM_START_POS;
+		COORD2 end;
+		end.row = cnr.row;
+		end.col = cnr.col + dmLOOPS->endCol;
+
+		return end;
+	}
+	COORD2 GeneratePath(COORD2 p)
+	{
+		COORD2 r;
+
+		r = PathVarient_doubleIceLoop(p);
+
+		return r;
+	}
+	void InitBoard(short rows, short cols)
+	{
+		m_xBoard.resize(rows, cols); // (Height, Width)
 
 		//Make everything empty
 		for (int i = 0; i < m_xBoard.rows(); i++)
@@ -421,18 +436,36 @@ private:
 				m_xBoard(i, j).type = FIRE;
 
 		DrawModule(28, 6, dmSTARTING);
-		DrawModule(19, 3, dmTESTING);
-		DrawModule(12, 4, dmLOOPS);
-
-		m_xBoard(0, 0).type = ICE;
-		m_xBoard(0, 0).e_state = 2;
-		m_xBoard(0, 1).type = ICE;
+		//DrawModule(19, 3, dmTESTING);
+		
+		do { pathEnd = GeneratePath(pathEnd); } while (pathEnd.row > 19);
+	}
+	void OnReset()
+	{
+		// Reset with black screen
+		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_SOLID, FG_BLACK);
+		// Reset board
+		pathEnd.row = 28;
+		pathEnd.col = 7;
+		InitBoard(40, 15); // (Height, Width)
+		// Reset the player
+		player = new PlayerState(CONST_PLAYER_ROW, 7);
+		
+		// Reset timing variables
+		fAcc = 0.0f;
+		ticks = 0;
+		smy = 0; //movement smoothing
+		smx = 0;
+		doomCreepPos = CONST_DOOM_START_POS;
 	}
 	void OnDeath() 
 	{
+		// Fill screen with red
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_HALF, FG_RED);
+		// Draw depth and coin stats
 		DrawStringFont(120, 28, L"DEPTH " + to_wstring(player->sDepth));
 		DrawStringFont(120, 36, L"COINS " + to_wstring(player->sCoins));
+		// Wait for user to continue
 		if (m_keys[VK_SPACE].bPressed) OnReset();
 	}
 
